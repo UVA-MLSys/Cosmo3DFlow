@@ -1,11 +1,39 @@
 # Cosmo3DFlow: Wavelet Flow Matching for Spatial-to-Spectral Compression in Reconstructing the Early Universe
 
-[![KDD 2026](https://img.shields.io/badge/KDD-2026-blue?style=flat-square)](https://kdd.org/kdd2026/)
+[![KDD 2026](https://img.shields.io/badge/KDD-2026-blue?style=flat-square)](https://kdd2026.kdd.org/ai4sciences-track-call-for-papers/)
 [![arXiv](https://img.shields.io/badge/arXiv-2602.10172-b31b1b?style=flat-square)](https://arxiv.org/abs/2602.10172)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10+-blue?style=flat-square)](https://python.org)
 
 > **KDD '26** · ACM SIGKDD · August 9–13, 2026 · Jeju, Republic of Korea
+
+```bibtex
+@article{islam2026cosmo3dflow,
+  title   = {Cosmo3DFlow: Wavelet Flow Matching for Spatial-to-Spectral
+             Compression in Reconstructing the Early Universe},
+  author  = {Islam, Md Khairul and Xia, Zeyu and Goudjil, Ryan and
+             Wang, Jialu and Farahi, Arya and Fox, Judy},
+  journal = {arXiv preprint arXiv:2602.10172},
+  year    = {2026}
+}
+```
+
+---
+
+## Contents
+
+- [Overview](#overview)
+- [The Void Problem](#the-void-problem)
+- [Method](#method)
+- [Dataset](#dataset)
+- [Experiments](#experiments)
+  - [Qualitative Reconstruction](#qualitative-reconstruction)
+  - [Computational Efficiency](#computational-efficiency)
+  - [Convergence](#convergence)
+  - [Physics Validation](#physics-validation)
+  - [Quantitative Results](#quantitative-results)
+- [Installation](#installation)
+- [Acknowledgments](#acknowledgments)
 
 ---
 
@@ -28,7 +56,7 @@ Cosmo3DFlow reconstructs early-Universe initial conditions from present-day obse
 ~**63.7%** of cosmic volume is empty voids holding only **16.2%** of dark matter mass — yet voxel-space models spend equal compute everywhere. The 3D DWT converts spatial emptiness into spectral sparsity, concentrating compute on physically meaningful filaments and halos.
 
 <p align="center">
-  <em>Left: voxel grid — uniform compute over 1.3 M empty voxels at 128³. Right: wavelet representation — voids collapse to a handful of coarse coefficients; filaments get dense fine-grained detail.</em>
+  <em><strong>Fig. 1 — Voxel vs. wavelet representation of the cosmic web.</strong> Left: a voxel grid distributes compute uniformly across all 2.1 M cells at 128³, despite ~63.7% being near-empty cosmic voids. Right: a single-level 3D Haar DWT makes sparsity explicit — voids collapse to near-zero high-frequency coefficients, while filaments and dark matter halos retain rich fine-grained detail. This 8× spatial compression is the foundation of Cosmo3DFlow's efficiency gains.</em>
   <br><br>
   <img src="docs/figures/SparsityDualis.png" alt="Voxel vs wavelet representation of the cosmic web" width="560"/>
 </p>
@@ -44,7 +72,7 @@ Flow matching trained entirely in wavelet space: apply 3D Haar DWT → interpola
 ### Wavelet-Aware 3D U-Net
 
 <p align="center">
-  <em>16-channel input (8ch wavelet noise + 8ch conditioning) → 8-channel velocity field, with scale-specific conditioning and cross-scale skip connections at every resolution.</em>
+  <em><strong>Fig. 2 — Wavelet-aware 3D U-Net.</strong> A 16-channel input (8ch wavelet noise + 8ch conditioned observation) passes through encoder–decoder blocks with a fixed 8³ bottleneck. Scale-specific conditioning injects per-level wavelet features at each resolution via 1×1×1 convolutions. Cross-scale skip connections bridge encoder features to non-corresponding decoder levels, enabling multi-scale information flow beyond a standard U-Net.</em>
   <br><br>
   <img src="docs/figures/3dunet.png" alt="Wavelet-aware 3D U-Net architecture" width="600"/>
 </p>
@@ -79,10 +107,10 @@ Three [Quijote N-body](https://quijote-simulations.readthedocs.io/en/latest/LH.h
 
 ## Experiments
 
-### Qualitative Results
+### Qualitative Reconstruction
 
 <p align="center">
-  <em><strong>Reconstruction quality.</strong> 2D slices at z = 127 for three Standard LH test samples. Columns: observation (z = 0) · ground truth · Diffusion · Cosmo3DFlow · error maps. The baseline blurs fine structure; Cosmo3DFlow preserves sharp filamentary features.</em>
+  <em><strong>Fig. 3 — Qualitative reconstruction at z = 127.</strong> Each row shows a 2D slice from a held-out Standard LH test simulation. Columns (left to right): present-day observation (z = 0), ground-truth initial conditions, diffusion baseline, Cosmo3DFlow reconstruction, and absolute error maps (darker = lower error). Cosmo3DFlow recovers sharp cosmic filaments and halo positions that the diffusion baseline blurs, achieving a 21% lower VRMSE at 128³.</em>
   <br><br>
   <img src="docs/figures/multiple_samples.png" alt="Qualitative reconstruction comparison" width="800"/>
 </p>
@@ -90,10 +118,12 @@ Three [Quijote N-body](https://quijote-simulations.readthedocs.io/en/latest/LH.h
 ### Computational Efficiency
 
 <p align="center">
-  <em><strong>Efficiency vs. quality trade-off.</strong> Cosmo3DFlow is 4.4× faster at equal steps and achieves better accuracy with 10× fewer steps — combining for a 50× end-to-end speedup.</em>
+  <em><strong>Fig. 4 — Sampling efficiency vs. reconstruction accuracy at 128³.</strong> Each point plots VRMSE against wall-clock sampling time for varying ODE step counts. Cosmo3DFlow (blue) is 4.4× faster per step due to 8× wavelet compression, and converges to lower VRMSE at just 100 steps than diffusion achieves at 1,000 — yielding a 50× end-to-end speedup (5.2 s vs. 243 s) with better quality.</em>
   <br><br>
   <img src="docs/figures/efficiency_comparison.png" alt="Efficiency comparison" width="500"/>
 </p>
+
+**Table 1 — Head-to-head comparison at 128³**
 
 | | Cosmo3DFlow | Diffusion |
 |---|---|---|
@@ -104,7 +134,7 @@ Three [Quijote N-body](https://quijote-simulations.readthedocs.io/en/latest/LH.h
 ### Convergence
 
 <p align="center">
-  <em><strong>Convergence vs. integration steps.</strong> Cosmo3DFlow reaches its best VRMSE in 100 steps; diffusion requires 1,000 to reach a higher error floor.</em>
+  <em><strong>Fig. 5 — Convergence vs. number of ODE integration steps.</strong> Top: reconstructed density field slices at 10, 50, 100, and 500 steps. Bottom: VRMSE as a function of step count (lower = better). Cosmo3DFlow (blue) reaches its best reconstruction quality at 100 Euler steps and plateaus; the diffusion baseline (red) requires 1,000 steps to approach a higher error floor. The deterministic ODE trajectory in flat wavelet space enables stable large-step integration without quality degradation.</em>
   <br><br>
   <img src="docs/figures/convergence_steps.png" alt="Convergence vs ODE steps" width="800"/>
 </p>
@@ -112,17 +142,17 @@ Three [Quijote N-body](https://quijote-simulations.readthedocs.io/en/latest/LH.h
 ### Physics Validation
 
 <p align="center">
-  <em><strong>Physics metrics.</strong> Power spectrum P(k), cross-correlation C(k), and transfer function T(k) vs. wavenumber. Cosmo3DFlow achieves near-perfect alignment with ground truth across all scales.</em>
+  <em><strong>Fig. 6 — Statistical physics metrics on the Standard LH test set at 128³.</strong> Each panel plots a statistic vs. wavenumber k. <em>Top:</em> power spectrum P(k) — energy distribution across spatial scales; <em>middle:</em> cross-correlation C(k) between predicted and true density fields; <em>bottom:</em> transfer function T(k). Cosmo3DFlow (blue) achieves near-perfect agreement with ground truth (dashed) across all scales, while diffusion (red) degrades at high k. PS R² = 0.99 vs. 0.70 for diffusion.</em>
   <br><br>
-  <img src="docs/figures/quantitative_metrics.png" alt="Physics validation metrics" width="800"/>
+  <img src="docs/figures/quantitative_metrics.png" alt="Physics validation metrics" width="700"/>
 </p>
 
 ### Quantitative Results
 
 <details>
-<summary>All datasets × resolutions (Ours / Diffusion · bold = best)</summary>
+<summary>Tables 2–4: All datasets × resolutions (Ours / Diffusion · <strong>bold = best</strong>)</summary>
 
-#### Standard Latin Hypercube
+#### Table 2 — Standard Latin Hypercube (2,000 simulations)
 
 | Resolution | VRMSE ↓ | Corr ↑ | PS R² ↑ | Transfer Fn ↑ |
 |---|---|---|---|---|
@@ -130,7 +160,7 @@ Three [Quijote N-body](https://quijote-simulations.readthedocs.io/en/latest/LH.h
 | 64³  | **0.47** / 0.68 | **0.92** / 0.89 | **0.98** / 0.59 | **0.98** / 0.59 |
 | 32³  | **0.34** / 0.82 | **0.96** / 0.85 | **0.95** / 0.48 | **0.95** / 0.48 |
 
-#### Big Sobol Sequence
+#### Table 3 — Big Sobol Sequence (1,000 simulations)
 
 | Resolution | VRMSE ↓ | Corr ↑ | PS R² ↑ | Transfer Fn ↑ |
 |---|---|---|---|---|
@@ -138,7 +168,7 @@ Three [Quijote N-body](https://quijote-simulations.readthedocs.io/en/latest/LH.h
 | 64³  | **0.53** / 0.65 | 0.88 / 0.88 | **0.98** / 0.83 | **0.94** / 0.81 |
 | 32³  | **0.37** / 0.79 | **0.95** / 0.85 | **0.95** / 0.48 | **0.94** / 0.71 |
 
-#### Non-Gaussian fNL LH
+#### Table 4 — Non-Gaussian fNL LH (1,000 simulations)
 
 | Resolution | VRMSE ↓ | Corr ↑ | PS R² ↑ | Transfer Fn ↑ |
 |---|---|---|---|---|
@@ -156,21 +186,6 @@ Three [Quijote N-body](https://quijote-simulations.readthedocs.io/en/latest/LH.h
 git clone https://github.com/khairul-me/Cosmo3DFlow.git
 cd Cosmo3DFlow
 pip install -r requirements.txt
-```
-
----
-
-## Citation
-
-```bibtex
-@article{islam2026cosmo3dflow,
-  title   = {Cosmo3DFlow: Wavelet Flow Matching for Spatial-to-Spectral
-             Compression in Reconstructing the Early Universe},
-  author  = {Islam, Md Khairul and Xia, Zeyu and Goudjil, Ryan and
-             Wang, Jialu and Farahi, Arya and Fox, Judy},
-  journal = {arXiv preprint arXiv:2602.10172},
-  year    = {2026}
-}
 ```
 
 ---

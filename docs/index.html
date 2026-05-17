@@ -49,22 +49,77 @@ main { position: relative; z-index: 1; }
 /* ── Nav ── */
 nav {
   position: sticky; top: 0; z-index: 100;
-  background: rgba(5,7,15,.85);
-  backdrop-filter: blur(12px);
+  background: rgba(5,7,15,.95);
+  backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border);
-  padding: 12px 24px;
+  padding: 18px 32px;
+  box-shadow: 0 2px 24px rgba(0,0,0,.5);
 }
 .nav-inner {
   max-width: 900px; margin: 0 auto;
-  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 32px;
 }
-.nav-brand { font-weight: 700; color: var(--accent); font-size: 1.05rem; white-space: nowrap; }
-.nav-links { display: flex; gap: 20px; flex-wrap: wrap; }
-.nav-links a {
-  color: var(--text-dim); font-size: .95rem; text-decoration: none;
-  transition: color .2s;
+.nav-brand {
+  font-weight: 700; color: var(--accent); font-size: 1.45rem;
+  white-space: nowrap; letter-spacing: -.02em;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
-.nav-links a:hover { color: var(--text); }
+.nav-links { display: flex; gap: 28px; flex-wrap: wrap; align-items: center; }
+.nav-links > a {
+  color: var(--text-dim); font-size: 1.1rem; font-weight: 500; text-decoration: none;
+  padding: 4px 0; border-bottom: 2px solid transparent;
+  transition: color .2s, border-color .2s;
+}
+.nav-links > a:hover { color: var(--text); border-color: var(--accent); }
+
+/* ── Nav dropdown ── */
+.nav-dropdown { position: relative; }
+.nav-dropdown-trigger {
+  color: var(--text-dim); font-size: 1.1rem; font-weight: 500; text-decoration: none;
+  padding: 4px 0; border-bottom: 2px solid transparent;
+  cursor: pointer; display: flex; align-items: center; gap: 5px;
+  transition: color .2s, border-color .2s;
+  user-select: none;
+}
+.nav-dropdown:hover .nav-dropdown-trigger { color: var(--text); border-color: var(--accent); }
+.nav-dropdown-caret { font-size: .7em; transition: transform .2s; }
+.nav-dropdown:hover .nav-dropdown-caret { transform: rotate(180deg); }
+.nav-dropdown-menu {
+  display: none;
+  position: absolute; top: calc(100% + 14px); left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px 0;
+  min-width: 190px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.6);
+  z-index: 200;
+}
+.nav-dropdown:hover .nav-dropdown-menu { display: block; }
+.nav-dropdown-menu::before {
+  content: '';
+  position: absolute; top: -5px; left: 50%;
+  width: 9px; height: 9px;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  border-top: 1px solid var(--border);
+  transform: translateX(-50%) rotate(45deg);
+}
+.nav-dropdown-menu a {
+  display: block; padding: 9px 20px;
+  font-size: .95rem; color: var(--text-dim); text-decoration: none;
+  transition: all .15s;
+}
+.nav-dropdown-menu a:hover { color: var(--accent); background: rgba(79,142,247,.08); padding-left: 26px; }
+
+/* ── Table label ── */
+.table-label {
+  font-size: .8rem; font-weight: 600; color: var(--text-dim);
+  margin: 24px 0 6px; letter-spacing: .03em;
+  text-transform: uppercase;
+}
 
 /* ── Hero ── */
 .hero {
@@ -419,7 +474,18 @@ footer a:hover { color: var(--accent); }
     <div class="nav-links">
       <a href="#abstract">Abstract</a>
       <a href="#method">Method</a>
-      <a href="#results">Results</a>
+      <div class="nav-dropdown">
+        <a href="#results" class="nav-dropdown-trigger">
+          Results <span class="nav-dropdown-caret">▾</span>
+        </a>
+        <div class="nav-dropdown-menu">
+          <a href="#qualitative">Qualitative Reconstruction</a>
+          <a href="#efficiency">Computational Efficiency</a>
+          <a href="#convergence">Convergence</a>
+          <a href="#physics">Physics Validation</a>
+          <a href="#full-results">Full Results</a>
+        </div>
+      </div>
       <a href="#citation">Cite</a>
     </div>
   </div>
@@ -458,7 +524,7 @@ footer a:hover { color: var(--accent); }
       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
       arXiv:2602.10172
     </a>
-    <a class="badge badge-kdd" href="https://kdd.org/kdd2026/" target="_blank" rel="noopener">
+    <a class="badge badge-kdd" href="https://kdd2026.kdd.org/ai4sciences-track-call-for-papers/" target="_blank" rel="noopener">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
       ACM SIGKDD 2026
     </a>
@@ -525,7 +591,7 @@ footer a:hover { color: var(--accent); }
     </div>
     <div class="fig-wrap reveal" style="max-width:620px;margin-left:auto;margin-right:auto;">
       <div class="fig-caption">
-        <strong>Voxel vs. wavelet representation of the cosmic web.</strong> Left: a voxel grid distributes compute uniformly across all 2.1 M cells at 128³, despite ~63.7% being near-empty cosmic voids. Right: a single-level 3D Haar DWT makes sparsity explicit — voids collapse to near-zero high-frequency coefficients, while filaments and dark matter halos retain rich fine-grained detail. This 8× spatial compression is the foundation of Cosmo3DFlow's efficiency gains.
+        <strong>Fig. 1 — Voxel vs. wavelet representation of the cosmic web.</strong> Left: a voxel grid distributes compute uniformly across all 2.1 M cells at 128³, despite ~63.7% being near-empty cosmic voids. Right: a single-level 3D Haar DWT makes sparsity explicit — voids collapse to near-zero high-frequency coefficients, while filaments and dark matter halos retain rich fine-grained detail. This 8× spatial compression is the foundation of Cosmo3DFlow's efficiency gains.
       </div>
       <img src="figures/SparsityDualis.png" alt="Voxel vs wavelet representation of the cosmic web">
     </div>
@@ -563,7 +629,7 @@ footer a:hover { color: var(--accent); }
     <h3 class="sub-title reveal">Wavelet-Aware 3D U-Net</h3>
     <div class="fig-wrap reveal">
       <div class="fig-caption">
-        <strong>Wavelet-aware 3D U-Net.</strong> A 16-channel input (8ch wavelet noise + 8ch conditioned observation) passes through encoder–decoder blocks with a fixed 8³ bottleneck. Scale-specific conditioning injects per-level wavelet features at each resolution via 1×1×1 convolutions. Cross-scale skip connections bridge encoder features to non-corresponding decoder levels, enabling multi-scale information flow beyond a standard U-Net, with BigGAN-style residual blocks using GroupNorm, SiLU, and Gaussian Fourier time embeddings.
+        <strong>Fig. 2 — Wavelet-aware 3D U-Net.</strong> A 16-channel input (8ch wavelet noise + 8ch conditioned observation) passes through encoder–decoder blocks with a fixed 8³ bottleneck. Scale-specific conditioning injects per-level wavelet features at each resolution via 1×1×1 convolutions. Cross-scale skip connections bridge encoder features to non-corresponding decoder levels, enabling multi-scale information flow beyond a standard U-Net, with BigGAN-style residual blocks using GroupNorm, SiLU, and Gaussian Fourier time embeddings.
       </div>
       <img src="figures/3dunet.png" alt="Wavelet-aware 3D U-Net architecture">
     </div>
@@ -599,23 +665,24 @@ footer a:hover { color: var(--accent); }
     <h2 class="sec-title reveal">Results</h2>
 
     <!-- Qualitative -->
-    <h3 class="sub-title reveal">Qualitative Reconstruction</h3>
+    <h3 class="sub-title reveal" id="qualitative">Qualitative Reconstruction</h3>
     <div class="fig-wrap reveal">
       <div class="fig-caption">
-        <strong>Qualitative reconstruction at z = 127.</strong> Each row shows a 2D slice from a held-out Standard LH test simulation. Columns (left to right): present-day observation (z = 0), ground-truth initial conditions, diffusion baseline, Cosmo3DFlow reconstruction, and absolute error maps (darker = lower error). Cosmo3DFlow recovers sharp cosmic filaments and halo positions that the diffusion baseline blurs, achieving a 21% lower VRMSE at 128³.
+        <strong>Fig. 3 — Qualitative reconstruction at z = 127.</strong> Each row shows a 2D slice from a held-out Standard LH test simulation. Columns (left to right): present-day observation (z = 0), ground-truth initial conditions, diffusion baseline, Cosmo3DFlow reconstruction, and absolute error maps (darker = lower error). Cosmo3DFlow recovers sharp cosmic filaments and halo positions that the diffusion baseline blurs, achieving a 21% lower VRMSE at 128³.
       </div>
       <img src="figures/multiple_samples.png" alt="Qualitative reconstruction comparison">
     </div>
 
     <!-- Efficiency -->
-    <h3 class="sub-title reveal">Computational Efficiency</h3>
+    <h3 class="sub-title reveal" id="efficiency">Computational Efficiency</h3>
     <div class="fig-wrap reveal">
       <div class="fig-caption">
-        <strong>Sampling efficiency vs. reconstruction accuracy at 128³.</strong> Each point plots VRMSE against wall-clock sampling time for varying ODE step counts. Cosmo3DFlow (blue) is 4.4× faster per step due to 8× wavelet compression, and converges to lower VRMSE at just 100 steps than diffusion (red) achieves at 1 000 — yielding a 50× end-to-end speedup (5.2 s vs. 243 s) with better quality.
+        <strong>Fig. 4 — Sampling efficiency vs. reconstruction accuracy at 128³.</strong> Each point plots VRMSE against wall-clock sampling time for varying ODE step counts. Cosmo3DFlow (blue) is 4.4× faster per step due to 8× wavelet compression, and converges to lower VRMSE at just 100 steps than diffusion (red) achieves at 1 000 — yielding a 50× end-to-end speedup (5.2 s vs. 243 s) with better quality.
       </div>
       <img src="figures/efficiency_comparison.png" alt="Efficiency comparison">
     </div>
 
+    <p class="table-label reveal">Table 1 — Head-to-head comparison at 128³</p>
     <div class="table-wrap reveal">
       <table>
         <thead>
@@ -633,27 +700,28 @@ footer a:hover { color: var(--accent); }
     </div>
 
     <!-- Convergence -->
-    <h3 class="sub-title reveal">Convergence</h3>
+    <h3 class="sub-title reveal" id="convergence">Convergence</h3>
     <div class="fig-wrap reveal">
       <div class="fig-caption">
-        <strong>Convergence vs. number of ODE integration steps.</strong> Top: reconstructed density field slices at 10, 50, 100, and 500 steps. Bottom: VRMSE as a function of step count (lower = better). Cosmo3DFlow (blue) reaches its best reconstruction quality at 100 Euler steps and plateaus; diffusion (red) requires 1 000 steps to approach a higher error floor. The deterministic ODE trajectory in flat wavelet space enables stable large-step integration without quality degradation.
+        <strong>Fig. 5 — Convergence vs. number of ODE integration steps.</strong> Top: reconstructed density field slices at 10, 50, 100, and 500 steps. Bottom: VRMSE as a function of step count (lower = better). Cosmo3DFlow (blue) reaches its best reconstruction quality at 100 Euler steps and plateaus; diffusion (red) requires 1 000 steps to approach a higher error floor. The deterministic ODE trajectory in flat wavelet space enables stable large-step integration without quality degradation.
       </div>
       <img src="figures/convergence_steps.png" alt="Convergence vs ODE steps">
     </div>
 
     <!-- Physics metrics -->
-    <h3 class="sub-title reveal">Physics Validation</h3>
+    <h3 class="sub-title reveal" id="physics">Physics Validation</h3>
     <div class="fig-wrap reveal" style="max-width:700px;margin-left:auto;margin-right:auto;">
       <div class="fig-caption">
-        <strong>Statistical physics metrics on the Standard LH test set at 128³.</strong> Each panel plots a statistic vs. wavenumber k. <em>Top:</em> power spectrum P(k) — energy distribution across spatial scales; <em>middle:</em> cross-correlation C(k) between predicted and true density fields; <em>bottom:</em> transfer function T(k). Cosmo3DFlow (blue) achieves near-perfect agreement with ground truth (dashed) across all scales, while diffusion (red) degrades at high k (small scales). P(k) R² = 0.99 vs. 0.70 for diffusion.
+        <strong>Fig. 6 — Statistical physics metrics on the Standard LH test set at 128³.</strong> Each panel plots a statistic vs. wavenumber k. <em>Top:</em> power spectrum P(k) — energy distribution across spatial scales; <em>middle:</em> cross-correlation C(k) between predicted and true density fields; <em>bottom:</em> transfer function T(k). Cosmo3DFlow (blue) achieves near-perfect agreement with ground truth (dashed) across all scales, while diffusion (red) degrades at high k (small scales). P(k) R² = 0.99 vs. 0.70 for diffusion.
       </div>
       <img src="figures/quantitative_metrics.png" alt="Physics validation metrics">
     </div>
 
     <!-- Full tables -->
-    <h3 class="sub-title reveal">Full Results <span style="font-weight:400;color:var(--text-dim);font-size:.85rem;">— Ours / Diffusion · bold = best</span></h3>
+    <h3 class="sub-title reveal" id="full-results">Full Results <span style="font-weight:400;color:var(--text-dim);font-size:.85rem;">— Ours / Diffusion · bold = best</span></h3>
 
-    <h4 style="font-size:.85rem;font-weight:600;margin:20px 0 8px;color:var(--text-dim);" class="reveal">Standard Latin Hypercube (2 000 simulations)</h4>
+    <h4 style="font-size:.85rem;font-weight:600;margin:24px 0 4px;color:var(--text-dim);" class="reveal">Standard Latin Hypercube (2 000 simulations)</h4>
+    <p class="table-label reveal">Table 2 — Standard LH results across resolutions</p>
     <div class="table-wrap reveal">
       <table>
         <thead><tr><th>Resolution</th><th>VRMSE ↓</th><th>Corr ↑</th><th>PS R² ↑</th><th>Transfer Fn ↑</th></tr></thead>
@@ -665,7 +733,8 @@ footer a:hover { color: var(--accent); }
       </table>
     </div>
 
-    <h4 style="font-size:.85rem;font-weight:600;margin:20px 0 8px;color:var(--text-dim);" class="reveal">Big Sobol Sequence (1 000 simulations)</h4>
+    <h4 style="font-size:.85rem;font-weight:600;margin:24px 0 4px;color:var(--text-dim);" class="reveal">Big Sobol Sequence (1 000 simulations)</h4>
+    <p class="table-label reveal">Table 3 — Big Sobol Sequence results across resolutions</p>
     <div class="table-wrap reveal">
       <table>
         <thead><tr><th>Resolution</th><th>VRMSE ↓</th><th>Corr ↑</th><th>PS R² ↑</th><th>Transfer Fn ↑</th></tr></thead>
@@ -677,7 +746,8 @@ footer a:hover { color: var(--accent); }
       </table>
     </div>
 
-    <h4 style="font-size:.85rem;font-weight:600;margin:20px 0 8px;color:var(--text-dim);" class="reveal">Non-Gaussian f<sub>NL</sub> LH (1 000 simulations)</h4>
+    <h4 style="font-size:.85rem;font-weight:600;margin:24px 0 4px;color:var(--text-dim);" class="reveal">Non-Gaussian f<sub>NL</sub> LH (1 000 simulations)</h4>
+    <p class="table-label reveal">Table 4 — Non-Gaussian f<sub>NL</sub> LH results across resolutions</p>
     <div class="table-wrap reveal">
       <table>
         <thead><tr><th>Resolution</th><th>VRMSE ↓</th><th>Corr ↑</th><th>PS R² ↑</th><th>Transfer Fn ↑</th></tr></thead>
