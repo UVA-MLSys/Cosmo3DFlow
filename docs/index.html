@@ -486,34 +486,9 @@ footer a:hover { color: var(--accent); }
       <div class="metric-label">Peak memory @ 128³</div>
     </div>
   </div>
-</section>
 
-<!-- ── Sample figures ── -->
-<section class="section" id="samples">
-  <div class="container">
-    <div class="sample-grid reveal">
-      <div>
-        <div class="fig-wrap">
-          <img src="figures/observation_3d.png" alt="Observation at z=0">
-        </div>
-        <div class="sample-label">Observation (z = 0)</div>
-      </div>
-      <div>
-        <div class="fig-wrap">
-          <img src="figures/truth_3d.png" alt="Ground truth initial conditions at z=127">
-        </div>
-        <div class="sample-label">Ground Truth (z = 127)</div>
-      </div>
-      <div>
-        <div class="fig-wrap">
-          <img src="figures/wfm_output_3d.png" alt="Cosmo3DFlow reconstruction">
-        </div>
-        <div class="sample-label">Cosmo3DFlow Reconstruction</div>
-      </div>
-    </div>
-    <p style="font-size:.82rem;color:var(--text-dim);text-align:center;margin-top:4px;">
-      Given a present-day density field (left), Cosmo3DFlow reconstructs initial conditions at z = 127 in under 6 seconds.
-    </p>
+  <div class="fig-wrap reveal" style="margin-top:40px;">
+    <img src="figures/teaser.png" alt="Cosmo3DFlow teaser">
   </div>
 </section>
 
@@ -522,7 +497,7 @@ footer a:hover { color: var(--accent); }
   <div class="container">
     <h2 class="sec-title reveal">Abstract</h2>
     <div class="abstract-box reveal">
-      Reconstructing the early Universe from the evolved present-day Universe is a challenging and computationally demanding problem in modern astrophysics. We devise a novel generative framework, <strong>Cosmo3DFlow</strong>, designed to address dimensionality and sparsity — the critical bottlenecks inherent in current state-of-the-art methods for cosmological inference. By integrating <strong>3D Discrete Wavelet Transform (DWT)</strong> with <strong>flow matching</strong>, we effectively represent high-dimensional cosmological structures. The Wavelet Transform addresses the "void problem" by translating spatial emptiness into spectral sparsity. It decouples high-frequency details from low-frequency structures through spatial compression, and wavelet-space velocity fields facilitate stable ordinary differential equation (ODE) solvers with large step sizes. Using large-scale cosmological N-body simulations, at 128³ resolution, we achieve up to <strong>50× faster sampling</strong> than diffusion models, combining a 10× reduction in integration steps with lower per-step computational cost from wavelet compression. Our results enable initial conditions to be sampled in seconds, compared to minutes for previous methods.
+      We present <strong>Cosmo3DFlow</strong>, a generative framework combining <strong>3D Discrete Wavelet Transform</strong> with <strong>flow matching</strong> to reconstruct early-Universe initial conditions from present-day observations. The wavelet transform addresses the <em>void problem</em> — ~63.7% of cosmic volume is near-empty — by converting spatial sparsity into spectral sparsity, enabling stable ODE integration with large step sizes. At 128³ resolution, Cosmo3DFlow achieves <strong>50× faster sampling</strong> than score-based diffusion (5.2 s vs. 243 s), with better reconstruction quality and half the peak memory.
     </div>
   </div>
 </section>
@@ -531,32 +506,28 @@ footer a:hover { color: var(--accent); }
 <section class="section" id="void">
   <div class="container">
     <h2 class="sec-title reveal">The Void Problem</h2>
-    <p class="reveal" style="color:var(--text-dim);margin-bottom:20px;">
-      Analysis of N-body simulations reveals a stark disconnect between volume and mass. Voids occupy <strong style="color:var(--red);">~63.7%</strong> of the total cosmic volume yet contain only <strong style="color:var(--red);">16.2%</strong> of the dark matter mass. In a standard voxel-space model, every one of these empty voxels demands identical compute to the dense, physically interesting halos and filaments. This "uniform computation cost" mismatch is the fundamental driver for adopting wavelet representations.
-    </p>
-    <div class="fig-wrap reveal">
-      <img src="figures/SparsityDualis.png" alt="Sparsity Dualis: voxel grid vs wavelet representation">
-      <div class="fig-caption">
-        <strong>Voxel vs. Wavelet representation of the Cosmic Web.</strong> Left: the Eulerian grid allocates compute uniformly — over 1.3 million of 2.1 million voxels at 128³ describe near-empty void regions. Right: the wavelet representation adapts to structure. Voids collapse to a handful of coarse approximation coefficients; filaments and halos receive dense, fine-grained detail coefficients.
-      </div>
-    </div>
-
-    <div class="contrib-grid reveal">
+    <div class="contrib-grid reveal" style="margin-bottom:28px;">
       <div class="contrib-card">
         <div class="contrib-icon">🌌</div>
         <h4>63.7% Empty by Volume</h4>
-        <p>Voids dominate the cosmic volume but carry only 16.2% of the dark matter mass — pure computational waste in voxel space.</p>
+        <p>Voids hold only 16.2% of dark matter mass — yet voxel models spend equal compute on every cell.</p>
       </div>
       <div class="contrib-card">
         <div class="contrib-icon">🌀</div>
         <h4>Spectral Sparsity</h4>
-        <p>The 3D Haar DWT converts spatial emptiness into near-zero high-frequency wavelet coefficients, making sparsity explicit.</p>
+        <p>3D Haar DWT converts spatial emptiness into near-zero high-frequency coefficients, making sparsity explicit.</p>
       </div>
       <div class="contrib-card">
         <div class="contrib-icon">⚡</div>
-        <h4>8× Spatial Compression</h4>
-        <p>One DWT level halves each spatial dimension, yielding an 8-fold compression that directly reduces per-step inference cost by 5×.</p>
+        <h4>8× Compression</h4>
+        <p>One DWT level halves each dimension → 8× fewer voxels → 5× lower per-step cost.</p>
       </div>
+    </div>
+    <div class="fig-wrap reveal">
+      <div class="fig-caption">
+        <strong>Voxel vs. wavelet representation.</strong> Left: uniform compute over 1.3 M empty voxels at 128³. Right: voids collapse to a few coarse coefficients; filaments and halos get fine-grained detail.
+      </div>
+      <img src="figures/SparsityDualis.png" alt="Voxel vs wavelet representation of the cosmic web">
     </div>
   </div>
 </section>
@@ -566,76 +537,59 @@ footer a:hover { color: var(--accent); }
   <div class="container">
     <h2 class="sec-title reveal">Method</h2>
 
-    <h3 class="sub-title reveal">Wavelet Flow Matching</h3>
-    <p class="reveal" style="color:var(--text-dim);margin-bottom:20px;">
-      Flow matching learns a velocity field v<sub>θ</sub> that transports samples from a Gaussian prior to the target distribution by solving a deterministic ODE. Cosmo3DFlow operates entirely in wavelet space, providing stable ODE integration with large step sizes.
-    </p>
-
     <div class="pipeline reveal">
       <div class="pipe-step">
         <div class="pipe-num">1</div>
         <h4>Transform</h4>
-        <p>Apply 3D Haar DWT to both noise and conditioning observation → 8 coefficient tensors at ½ spatial resolution</p>
+        <p>3D Haar DWT → 8 coefficient tensors at ½ spatial resolution (8× compression)</p>
       </div>
       <div class="pipe-step">
         <div class="pipe-num">2</div>
         <h4>Interpolate</h4>
-        <p>Form the flow path w̃<sub>t</sub> = t·w̃₁ + (1−t)·w̃₀ in wavelet space</p>
+        <p>Linear flow path in wavelet space between noise and target</p>
       </div>
       <div class="pipe-step">
         <div class="pipe-num">3</div>
         <h4>Train</h4>
-        <p>Minimize wavelet-space flow matching loss + power spectrum regularizer</p>
+        <p>Flow matching loss + power spectrum regularizer (λ = 0.01)</p>
       </div>
       <div class="pipe-step">
         <div class="pipe-num">4</div>
         <h4>Sample</h4>
-        <p>Integrate v<sub>θ</sub> with 100 Euler steps, then apply IDWT to recover the initial density field</p>
+        <p>100 Euler steps in wavelet space → IDWT → density field</p>
       </div>
     </div>
 
-    <h3 class="sub-title reveal">Training Objective</h3>
-    <div class="eq-block reveal">
-ℒ_flow  = E[ ‖ v_θ(w̃_t, t, ỹ) − (w̃₁ − w̃₀) ‖² ]
-
-ℒ_PS    = Σᵢ ( log P_pred(kᵢ) − log P_target(kᵢ) )²
-
-ℒ_total = ℒ_flow  +  0.01 · ℒ_PS</div>
-    <p class="reveal" style="font-size:.83rem;color:var(--text-dim);">
-      The power spectrum regularizer (λ = 0.01) enforces physically consistent density statistics, pushing the model to respect the correct cosmological power distribution across wavenumbers k.
-    </p>
-
     <h3 class="sub-title reveal">Wavelet-Aware 3D U-Net</h3>
-    <p class="reveal" style="color:var(--text-dim);margin-bottom:20px;">
-      The velocity network takes 16 input channels (8-channel wavelet noise + 8-channel conditioning) and predicts the 8-channel velocity field. Key architectural innovations:
-    </p>
+    <div class="fig-wrap reveal">
+      <div class="fig-caption">
+        <strong>Architecture.</strong> 16-ch input (8ch noise + 8ch conditioning) → 8-ch velocity field. Scale-specific conditioning injects per-level wavelet features via 1×1×1 convolutions; cross-scale skips bridge encoder to non-corresponding decoder levels.
+      </div>
+      <img src="figures/3dunet.png" alt="Wavelet-aware 3D U-Net architecture">
+    </div>
+
     <div class="arch-grid reveal">
       <dl class="arch-item">
-        <dt>Scale-specific conditioning</dt>
-        <dd>Per-level wavelet features injected via 1×1×1 convolutions at each U-Net resolution</dd>
+        <dt>Scale conditioning</dt>
+        <dd>Per-level wavelet features · 1×1×1 conv at each resolution</dd>
       </dl>
       <dl class="arch-item">
-        <dt>Cross-scale skip connections</dt>
-        <dd>Learned 1×1×1 projections bridge encoder features to non-corresponding decoder levels</dd>
+        <dt>Cross-scale skips</dt>
+        <dd>Encoder → non-corresponding decoder levels</dd>
       </dl>
       <dl class="arch-item">
         <dt>Residual blocks</dt>
-        <dd>BigGAN-style with Group Normalization, SiLU activations, Gaussian Fourier time embeddings</dd>
+        <dd>BigGAN-style · GroupNorm · SiLU · Fourier time embed</dd>
       </dl>
       <dl class="arch-item">
         <dt>Fixed 8³ bottleneck</dt>
-        <dd>2, 3, or 4 encoder levels for 32³ / 64³ / 128³ resolutions</dd>
+        <dd>2 / 3 / 4 levels for 32³ / 64³ / 128³</dd>
       </dl>
     </div>
 
-    <h3 class="sub-title reveal">Training Configuration</h3>
-    <div class="eq-block reveal">Optimizer:     AdamW,  lr = 1e-4
-LR schedule:   ReduceLROnPlateau (patience=5, factor=0.5)
-Grad clipping: max norm 1.0
-EMA decay:     0.999
-Epochs:        100  (best val-loss checkpoint)
-Batch sizes:   16 / 8 / 4  for 32³ / 64³ / 128³
-Hardware:      NVIDIA A100 80 GB</div>
+    <h3 class="sub-title reveal">Training</h3>
+    <div class="eq-block reveal">AdamW  lr=1e-4  ·  ReduceLROnPlateau (patience=5, ×0.5)  ·  grad clip 1.0  ·  EMA 0.999
+100 epochs (best val-loss)  ·  batch 16/8/4 (32³/64³/128³)  ·  A100 80 GB</div>
   </div>
 </section>
 
@@ -644,73 +598,62 @@ Hardware:      NVIDIA A100 80 GB</div>
   <div class="container">
     <h2 class="sec-title reveal">Results</h2>
 
-    <h3 class="sub-title reveal">Efficiency Comparison @ 128³</h3>
-    <div class="reveal" style="margin:20px 0 28px;">
-      <div class="speed-row">
-        <span class="speed-label">Cosmo3DFlow</span>
-        <div class="speed-bar-wrap">
-          <div class="speed-bar bar-ours" data-width="2.1" style="width:0%">5.2 s</div>
-        </div>
-        <span class="speed-val">5.2 s</span>
+    <!-- Qualitative -->
+    <h3 class="sub-title reveal">Qualitative Reconstruction</h3>
+    <div class="fig-wrap reveal">
+      <div class="fig-caption">
+        <strong>2D slices at z = 127</strong> for three Standard LH test samples. Columns: observation (z = 0) · ground truth · Diffusion · Cosmo3DFlow · error maps. The baseline blurs fine structure; Cosmo3DFlow preserves sharp filamentary features with consistently lower error.
       </div>
-      <div class="speed-row">
-        <span class="speed-label">Diffusion baseline</span>
-        <div class="speed-bar-wrap">
-          <div class="speed-bar bar-diffuse" data-width="100" style="width:0%">243 s</div>
-        </div>
-        <span class="speed-val">243 s</span>
+      <img src="figures/multiple_samples.png" alt="Qualitative reconstruction comparison">
+    </div>
+
+    <!-- Efficiency -->
+    <h3 class="sub-title reveal">Computational Efficiency</h3>
+    <div class="fig-wrap reveal">
+      <div class="fig-caption">
+        <strong>Efficiency vs. quality.</strong> Cosmo3DFlow is 4.4× faster at equal steps and achieves better accuracy with 10× fewer steps — a 50× end-to-end speedup.
       </div>
-      <p style="font-size:.78rem;color:var(--text-faint);margin-top:8px;">Bars scaled proportionally to sampling time.</p>
+      <img src="figures/efficiency_comparison.png" alt="Efficiency comparison">
     </div>
 
     <div class="table-wrap reveal">
       <table>
         <thead>
-          <tr>
-            <th>Metric</th>
-            <th>Cosmo3DFlow</th>
-            <th>Diffusion Baseline</th>
-          </tr>
+          <tr><th>Metric @ 128³</th><th>Cosmo3DFlow</th><th>Diffusion</th></tr>
         </thead>
         <tbody>
-          <tr class="highlight-row">
-            <td>Sampling time @ 128³</td>
-            <td class="best">5.2 s</td>
-            <td>243 s</td>
-          </tr>
-          <tr>
-            <td>VRMSE @ 128³</td>
-            <td class="best">0.50</td>
-            <td>0.63</td>
-          </tr>
-          <tr>
-            <td>Cross-correlation @ 128³</td>
-            <td class="best">0.88</td>
-            <td>0.82</td>
-          </tr>
-          <tr>
-            <td>Power spectrum R² @ 128³</td>
-            <td class="best">0.99</td>
-            <td>0.70</td>
-          </tr>
-          <tr>
-            <td>Peak memory @ 128³</td>
-            <td class="best">2.1 GB</td>
-            <td>4.0 GB</td>
-          </tr>
-          <tr>
-            <td>ODE steps</td>
-            <td class="best">100</td>
-            <td>1 000</td>
-          </tr>
+          <tr class="highlight-row"><td>Sampling time</td><td class="best">5.2 s</td><td>243 s</td></tr>
+          <tr><td>VRMSE</td><td class="best">0.50</td><td>0.63</td></tr>
+          <tr><td>Cross-correlation</td><td class="best">0.88</td><td>0.82</td></tr>
+          <tr><td>Power spectrum R²</td><td class="best">0.99</td><td>0.70</td></tr>
+          <tr><td>Peak memory</td><td class="best">2.1 GB</td><td>4.0 GB</td></tr>
+          <tr><td>ODE steps</td><td class="best">100</td><td>1 000</td></tr>
         </tbody>
       </table>
     </div>
 
-    <h3 class="sub-title reveal">Full Results — All Datasets × Resolutions</h3>
-    <p class="reveal" style="font-size:.83rem;color:var(--text-dim);margin-bottom:16px;">Format: Ours / Diffusion baseline. Bold = best.</p>
+    <!-- Convergence -->
+    <h3 class="sub-title reveal">Convergence</h3>
+    <div class="fig-wrap reveal">
+      <div class="fig-caption">
+        <strong>Generation from noise.</strong> VRMSE (lower row, lower = better) shows Cosmo3DFlow converges in 100 steps; diffusion needs 1 000 to reach a higher error floor.
+      </div>
+      <img src="figures/convergence_steps.png" alt="Convergence vs ODE steps">
+    </div>
 
-    <h4 style="font-size:.9rem;font-weight:600;margin:20px 0 8px;" class="reveal">Standard Latin Hypercube (2 000 simulations)</h4>
+    <!-- Physics metrics -->
+    <h3 class="sub-title reveal">Physics Validation</h3>
+    <div class="fig-wrap reveal">
+      <div class="fig-caption">
+        <strong>Power spectrum P(k) · cross-correlation C(k) · transfer function T(k).</strong> Cosmo3DFlow achieves near-perfect alignment with ground truth across all wavenumbers k.
+      </div>
+      <img src="figures/quantitative_metrics.png" alt="Physics validation metrics">
+    </div>
+
+    <!-- Full tables -->
+    <h3 class="sub-title reveal">Full Results <span style="font-weight:400;color:var(--text-dim);font-size:.85rem;">— Ours / Diffusion · bold = best</span></h3>
+
+    <h4 style="font-size:.85rem;font-weight:600;margin:20px 0 8px;color:var(--text-dim);" class="reveal">Standard Latin Hypercube (2 000 simulations)</h4>
     <div class="table-wrap reveal">
       <table>
         <thead><tr><th>Resolution</th><th>VRMSE ↓</th><th>Corr ↑</th><th>PS R² ↑</th><th>Transfer Fn ↑</th></tr></thead>
@@ -722,7 +665,7 @@ Hardware:      NVIDIA A100 80 GB</div>
       </table>
     </div>
 
-    <h4 style="font-size:.9rem;font-weight:600;margin:20px 0 8px;" class="reveal">Big Sobol Sequence (1 000 simulations)</h4>
+    <h4 style="font-size:.85rem;font-weight:600;margin:20px 0 8px;color:var(--text-dim);" class="reveal">Big Sobol Sequence (1 000 simulations)</h4>
     <div class="table-wrap reveal">
       <table>
         <thead><tr><th>Resolution</th><th>VRMSE ↓</th><th>Corr ↑</th><th>PS R² ↑</th><th>Transfer Fn ↑</th></tr></thead>
@@ -734,7 +677,7 @@ Hardware:      NVIDIA A100 80 GB</div>
       </table>
     </div>
 
-    <h4 style="font-size:.9rem;font-weight:600;margin:20px 0 8px;" class="reveal">Non-Gaussian f<sub>NL</sub> LH (1 000 simulations)</h4>
+    <h4 style="font-size:.85rem;font-weight:600;margin:20px 0 8px;color:var(--text-dim);" class="reveal">Non-Gaussian f<sub>NL</sub> LH (1 000 simulations)</h4>
     <div class="table-wrap reveal">
       <table>
         <thead><tr><th>Resolution</th><th>VRMSE ↓</th><th>Corr ↑</th><th>PS R² ↑</th><th>Transfer Fn ↑</th></tr></thead>
@@ -748,67 +691,30 @@ Hardware:      NVIDIA A100 80 GB</div>
   </div>
 </section>
 
-<!-- ── Ablation ── -->
-<section class="section" id="ablation">
-  <div class="container">
-    <h2 class="sec-title reveal">Ablation Study</h2>
-    <p class="reveal" style="color:var(--text-dim);margin-bottom:20px;">
-      Component ablation at 32³ resolution (Standard LH). Each row adds one component; the full model achieves the best VRMSE and R².
-    </p>
-    <div class="table-wrap reveal">
-      <table>
-        <thead>
-          <tr>
-            <th>Wavelet</th>
-            <th>Scale Cond.</th>
-            <th>X-Scale Skips</th>
-            <th>P(k) Weight</th>
-            <th>VRMSE ↓</th>
-            <th>R² ↑</th>
-            <th>Transfer Fn ↑</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td>✗</td><td>✗</td><td>✗</td><td>✗</td><td>0.26</td><td>0.95</td><td>0.94</td></tr>
-          <tr><td>✓</td><td>✗</td><td>✗</td><td>✗</td><td>0.34</td><td>0.95</td><td>0.95</td></tr>
-          <tr><td>✓</td><td>✓</td><td>✓</td><td>✗</td><td>0.27</td><td>0.96</td><td class="best">0.96</td></tr>
-          <tr class="highlight-row"><td>✓</td><td>✓</td><td>✓</td><td>0.01</td><td class="best">0.25</td><td class="best">0.97</td><td class="best">0.96</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p class="reveal" style="font-size:.82rem;color:var(--text-dim);margin-top:12px;">
-      Scale conditioning and cross-scale skips bridge the gap between spatial and wavelet domains. The power spectrum weight pushes the model to respect physical density statistics, yielding the best overall VRMSE.
-    </p>
-  </div>
-</section>
-
 <!-- ── Dataset ── -->
 <section class="section" id="dataset">
   <div class="container">
     <h2 class="sec-title reveal">Dataset</h2>
-    <p class="reveal" style="color:var(--text-dim);margin-bottom:20px;">
-      Experiments use three suites from the <a href="https://quijote-simulations.readthedocs.io/en/latest/LH.html" target="_blank" rel="noopener" style="color:var(--accent);">Quijote N-body simulations</a> — periodic boxes of (1 000 h⁻¹ Mpc)³ with 512³ particles, snapshots at z = 127 (initial conditions) and z = 0 (present-day). Density fields are constructed at 32³, 64³, and 128³ resolutions using the Pylians library.
-    </p>
     <div class="dataset-grid reveal">
       <div class="dataset-card">
         <h4>Standard Latin Hypercube</h4>
-        <div class="stat"><strong>2 000</strong> simulations</div>
-        <div class="stat">5 parameters: Ω<sub>m</sub>, Ω<sub>b</sub>, h, n<sub>s</sub>, σ<sub>8</sub></div>
+        <div class="stat"><strong>2 000</strong> simulations · 5 Λ CDM params</div>
         <div class="stat">Split: 1 800 / 100 / 100</div>
       </div>
       <div class="dataset-card">
-        <h4>Big Sobol Sequence (BSQ)</h4>
-        <div class="stat"><strong>1 000</strong> simulations</div>
-        <div class="stat">5 parameters: Ω<sub>m</sub>, Ω<sub>b</sub>, h, n<sub>s</sub>, σ<sub>8</sub></div>
+        <h4>Big Sobol Sequence</h4>
+        <div class="stat"><strong>1 000</strong> simulations · 5 Λ CDM params</div>
         <div class="stat">Split: 8 : 1 : 1</div>
       </div>
       <div class="dataset-card">
         <h4>Non-Gaussian f<sub>NL</sub> LH</h4>
-        <div class="stat"><strong>1 000</strong> simulations</div>
-        <div class="stat">f<sub>NL</sub><sup>local</sup> ∈ [−300, 300]</div>
+        <div class="stat"><strong>1 000</strong> simulations · f<sub>NL</sub> ∈ [−300, 300]</div>
         <div class="stat">Split: 8 : 1 : 1</div>
       </div>
     </div>
+    <p class="reveal" style="font-size:.82rem;color:var(--text-faint);margin-top:14px;">
+      <a href="https://quijote-simulations.readthedocs.io/en/latest/LH.html" target="_blank" rel="noopener" style="color:var(--accent);">Quijote N-body simulations</a> · (1 000 h⁻¹ Mpc)³ · 512³ particles · fields at 32³, 64³, 128³ · z = 127 &amp; z = 0
+    </p>
   </div>
 </section>
 
@@ -835,7 +741,7 @@ Hardware:      NVIDIA A100 80 GB</div>
   <div class="container">
     <h2 class="sec-title reveal">Acknowledgments</h2>
     <div class="ack-box reveal">
-      This work is partly supported by the <strong>NSF-Simons AI Institute for Cosmic Origins</strong> (CosmicAI, Grant 2421782). We thank the Quijote simulation team for making their N-body suite publicly available.
+      Supported by the <strong>NSF-Simons AI Institute for Cosmic Origins</strong> (CosmicAI, Grant 2421782). We thank the Quijote team for making their N-body suite publicly available.
     </div>
   </div>
 </section>
