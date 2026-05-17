@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cosmo3DFlow — Wavelet Flow Matching for Reconstructing the Early Universe</title>
+<meta name="description" content="KDD 2026 paper: Cosmo3DFlow combines 3D DWT with flow matching for 50× faster cosmological initial conditions reconstruction.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #05070f;
+  --bg2: #080c18;
+  --surface: #0d1424;
+  --surface2: #121b30;
+  --border: #1e2d4a;
+  --accent: #4f8ef7;
+  --accent2: #a78bfa;
+  --accent3: #34d399;
+  --text: #e2e8f0;
+  --text-dim: #94a3b8;
+  --text-faint: #4a5568;
+  --gold: #fbbf24;
+  --red: #f87171;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+
+/* ── Starfield canvas ── */
+#stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+/* ── Layout ── */
+main { position: relative; z-index: 1; }
+.container { max-width: 900px; margin: 0 auto; padding: 0 24px; }
+.section { padding: 80px 0; }
+.section + .section { border-top: 1px solid var(--border); }
+
+/* ── Nav ── */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(5,7,15,.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 24px;
+}
+.nav-inner {
+  max-width: 900px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+}
+.nav-brand { font-weight: 700; color: var(--accent); font-size: .95rem; white-space: nowrap; }
+.nav-links { display: flex; gap: 20px; flex-wrap: wrap; }
+.nav-links a {
+  color: var(--text-dim); font-size: .85rem; text-decoration: none;
+  transition: color .2s;
+}
+.nav-links a:hover { color: var(--text); }
+
+/* ── Hero ── */
+.hero {
+  padding: 100px 0 80px;
+  text-align: center;
+}
+.venue-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(79,142,247,.12);
+  border: 1px solid rgba(79,142,247,.35);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: .8rem; font-weight: 600;
+  color: var(--accent);
+  letter-spacing: .04em;
+  margin-bottom: 28px;
+}
+.venue-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+h1.title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-weight: 700;
+  line-height: 1.25;
+  background: linear-gradient(135deg, #e2e8f0 0%, #a5c8ff 40%, #c4b5fd 80%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 32px;
+}
+
+.authors {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 20px;
+  margin-bottom: 12px;
+}
+.author { font-size: .9rem; color: var(--text-dim); }
+.author a { color: var(--text-dim); text-decoration: none; }
+.author a:hover { color: var(--accent); }
+.affils {
+  font-size: .8rem; color: var(--text-faint);
+  margin-bottom: 32px;
+}
+
+.badge-row {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;
+  margin-bottom: 48px;
+}
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: .82rem; font-weight: 500;
+  text-decoration: none;
+  border: 1px solid var(--border);
+  transition: all .2s;
+}
+.badge:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,.4); }
+.badge-arxiv { background: rgba(179,27,27,.15); border-color: rgba(179,27,27,.4); color: #fca5a5; }
+.badge-kdd   { background: rgba(79,142,247,.12); border-color: rgba(79,142,247,.35); color: var(--accent); }
+.badge-github { background: rgba(30,45,74,.5); border-color: var(--border); color: var(--text-dim); }
+
+/* ── Metric cards ── */
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.metric-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 16px;
+  text-align: center;
+  transition: border-color .2s, transform .2s;
+}
+.metric-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+.metric-val {
+  font-size: 1.8rem; font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.metric-label { font-size: .75rem; color: var(--text-dim); margin-top: 4px; }
+
+/* ── Section headings ── */
+h2.sec-title {
+  font-size: 1.5rem; font-weight: 700;
+  color: var(--text);
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--border);
+  position: relative;
+}
+h2.sec-title::after {
+  content: '';
+  position: absolute; left: 0; bottom: -2px;
+  width: 48px; height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+}
+h3.sub-title { font-size: 1.1rem; font-weight: 600; color: var(--text); margin: 28px 0 12px; }
+
+/* ── Abstract ── */
+.abstract-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  padding: 24px 28px;
+  font-size: .95rem;
+  color: var(--text-dim);
+  line-height: 1.8;
+}
+
+/* ── Figure ── */
+.fig-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 28px 0;
+}
+.fig-wrap img {
+  width: 100%; display: block;
+}
+.fig-caption {
+  padding: 14px 20px;
+  font-size: .82rem;
+  color: var(--text-dim);
+  border-top: 1px solid var(--border);
+  line-height: 1.6;
+}
+
+/* ── Sample grid ── */
+.sample-grid {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 12px;
+  margin: 28px 0;
+}
+.sample-grid .fig-wrap { margin: 0; }
+.sample-label {
+  text-align: center;
+  font-size: .78rem;
+  color: var(--text-dim);
+  padding: 8px 4px;
+}
+
+/* ── Contributions ── */
+.contrib-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px,1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+.contrib-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 22px 20px;
+  transition: border-color .2s, transform .2s;
+}
+.contrib-card:hover { border-color: var(--accent2); transform: translateY(-3px); }
+.contrib-icon { font-size: 1.6rem; margin-bottom: 12px; }
+.contrib-card h4 { font-size: .95rem; font-weight: 600; margin-bottom: 8px; }
+.contrib-card p { font-size: .85rem; color: var(--text-dim); line-height: 1.65; }
+
+/* ── Method pipeline ── */
+.pipeline {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin: 28px 0;
+  overflow-x: auto;
+}
+.pipe-step {
+  flex: 1; min-width: 120px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 20px 16px;
+  text-align: center;
+}
+.pipe-step:first-child { border-radius: 10px 0 0 10px; }
+.pipe-step:last-child  { border-radius: 0 10px 10px 0; }
+.pipe-step + .pipe-step { border-left: none; }
+.pipe-num {
+  display: inline-block;
+  width: 28px; height: 28px; line-height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff; font-size: .8rem; font-weight: 700;
+  margin-bottom: 10px;
+}
+.pipe-step h4 { font-size: .85rem; font-weight: 600; margin-bottom: 6px; }
+.pipe-step p  { font-size: .78rem; color: var(--text-dim); }
+
+/* ── Equations ── */
+.eq-block {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 18px 24px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .85rem;
+  color: var(--accent3);
+  overflow-x: auto;
+  margin: 16px 0;
+}
+
+/* ── Tables ── */
+.table-wrap { overflow-x: auto; margin: 20px 0; }
+table {
+  width: 100%; border-collapse: collapse;
+  font-size: .85rem;
+}
+th {
+  background: var(--surface2);
+  color: var(--text-dim);
+  font-weight: 600;
+  padding: 10px 14px;
+  text-align: left;
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+td {
+  padding: 9px 14px;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+tr:nth-child(even) td { background: rgba(13,20,36,.5); }
+.best { color: var(--accent3); font-weight: 700; }
+.highlight-row td { background: rgba(79,142,247,.08) !important; }
+
+/* ── Speed bar ── */
+.speed-row { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
+.speed-label { min-width: 140px; font-size: .82rem; color: var(--text-dim); }
+.speed-bar-wrap { flex: 1; height: 24px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+.speed-bar {
+  height: 100%; border-radius: 4px;
+  display: flex; align-items: center; padding-left: 10px;
+  font-size: .75rem; font-weight: 600; color: #fff;
+  transition: width 1.2s cubic-bezier(.4,0,.2,1);
+}
+.bar-ours    { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+.bar-diffuse { background: linear-gradient(90deg, #ef4444, #dc2626); }
+.speed-val { font-size: .82rem; color: var(--text-dim); min-width: 60px; text-align: right; }
+
+/* ── Architecture details ── */
+.arch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+.arch-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+}
+.arch-item dt { font-size: .78rem; color: var(--text-dim); margin-bottom: 4px; }
+.arch-item dd { font-size: .88rem; font-weight: 600; }
+
+/* ── Dataset pills ── */
+.dataset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
+  gap: 14px;
+  margin-top: 20px;
+}
+.dataset-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+}
+.dataset-card h4 { font-size: .9rem; font-weight: 600; margin-bottom: 10px; color: var(--accent); }
+.dataset-card .stat { font-size: .83rem; color: var(--text-dim); margin: 3px 0; }
+.dataset-card .stat strong { color: var(--text); }
+
+/* ── BibTeX ── */
+.bibtex-wrap { position: relative; margin-top: 16px; }
+.bibtex-code {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 22px 24px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .82rem;
+  color: var(--text-dim);
+  line-height: 1.7;
+  overflow-x: auto;
+  white-space: pre;
+}
+.copy-btn {
+  position: absolute; top: 12px; right: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-dim);
+  font-size: .75rem;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.copy-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* ── Acknowledgments ── */
+.ack-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 22px 26px;
+  font-size: .88rem;
+  color: var(--text-dim);
+  line-height: 1.7;
+}
+.ack-box strong { color: var(--text); }
+
+/* ── Footer ── */
+footer {
+  text-align: center;
+  padding: 40px 24px;
+  font-size: .8rem;
+  color: var(--text-faint);
+  border-top: 1px solid var(--border);
+}
+footer a { color: var(--text-dim); text-decoration: none; }
+footer a:hover { color: var(--accent); }
+
+/* ── Scroll reveal ── */
+.reveal { opacity: 0; transform: translateY(24px); transition: opacity .6s ease, transform .6s ease; }
+.reveal.visible { opacity: 1; transform: none; }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .sample-grid { grid-template-columns: 1fr; }
+  .pipeline { flex-direction: column; }
+  .pipe-step { border-radius: 0 !important; border-left: 1px solid var(--border) !important; }
+  .pipe-step:first-child { border-radius: 10px 10px 0 0 !important; }
+  .pipe-step:last-child  { border-radius: 0 0 10px 10px !important; border-top: none !important; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+
+<nav>
+  <div class="nav-inner">
+    <span class="nav-brand">Cosmo3DFlow</span>
+    <div class="nav-links">
+      <a href="#abstract">Abstract</a>
+      <a href="#method">Method</a>
+      <a href="#results">Results</a>
+      <a href="#citation">Cite</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+
+<!-- ── Hero ── -->
+<section class="hero container">
+  <div class="venue-pill">
+    <span class="dot"></span>
+    KDD '26 · Jeju, Republic of Korea · August 9–13, 2026
+  </div>
+
+  <h1 class="title">
+    Cosmo3DFlow: Wavelet Flow Matching for<br>
+    Spatial-to-Spectral Compression in<br>
+    Reconstructing the Early Universe
+  </h1>
+
+  <div class="authors">
+    <span class="author">Md. Khairul Islam<sup>1</sup></span>
+    <span class="author">Zeyu Xia<sup>1</sup></span>
+    <span class="author">Ryan Goudjil<sup>1</sup></span>
+    <span class="author">Jialu Wang<sup>2</sup></span>
+    <span class="author">Arya Farahi<sup>2</sup></span>
+    <span class="author">Judy Fox<sup>1</sup></span>
+  </div>
+  <div class="affils">
+    <sup>1</sup> University of Virginia &nbsp;·&nbsp;
+    <sup>2</sup> University of Texas at Austin
+  </div>
+
+  <div class="badge-row">
+    <a class="badge badge-arxiv" href="https://arxiv.org/abs/2602.10172" target="_blank" rel="noopener">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+      arXiv:2602.10172
+    </a>
+    <a class="badge badge-kdd" href="https://kdd.org/kdd2026/" target="_blank" rel="noopener">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+      ACM SIGKDD 2026
+    </a>
+    <a class="badge badge-github" href="https://github.com/khairul-me/Cosmo3DFlow" target="_blank" rel="noopener">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+      Code
+    </a>
+  </div>
+
+  <div class="metrics reveal">
+    <div class="metric-card">
+      <div class="metric-val">50×</div>
+      <div class="metric-label">Overall speedup</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-val">5.2 s</div>
+      <div class="metric-label">Sampling @ 128³</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-val">0.99</div>
+      <div class="metric-label">Power Spectrum R²</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-val">2.1 GB</div>
+      <div class="metric-label">Peak memory @ 128³</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Sample figures ── -->
+<section class="section" id="samples">
+  <div class="container">
+    <div class="sample-grid reveal">
+      <div>
+        <div class="fig-wrap">
+          <img src="figures/observation_3d.png" alt="Observation at z=0">
+        </div>
+        <div class="sample-label">Observation (z = 0)</div>
+      </div>
+      <div>
+        <div class="fig-wrap">
+          <img src="figures/truth_3d.png" alt="Ground truth initial conditions at z=127">
+        </div>
+        <div class="sample-label">Ground Truth (z = 127)</div>
+      </div>
+      <div>
+        <div class="fig-wrap">
+          <img src="figures/wfm_output_3d.png" alt="Cosmo3DFlow reconstruction">
+        </div>
+        <div class="sample-label">Cosmo3DFlow Reconstruction</div>
+      </div>
+    </div>
+    <p style="font-size:.82rem;color:var(--text-dim);text-align:center;margin-top:4px;">
+      Given a present-day density field (left), Cosmo3DFlow reconstructs initial conditions at z = 127 in under 6 seconds.
+    </p>
+  </div>
+</section>
+
+<!-- ── Abstract ── -->
+<section class="section" id="abstract">
+  <div class="container">
+    <h2 class="sec-title reveal">Abstract</h2>
+    <div class="abstract-box reveal">
+      Reconstructing the early Universe from the evolved present-day Universe is a challenging and computationally demanding problem in modern astrophysics. We devise a novel generative framework, <strong>Cosmo3DFlow</strong>, designed to address dimensionality and sparsity — the critical bottlenecks inherent in current state-of-the-art methods for cosmological inference. By integrating <strong>3D Discrete Wavelet Transform (DWT)</strong> with <strong>flow matching</strong>, we effectively represent high-dimensional cosmological structures. The Wavelet Transform addresses the "void problem" by translating spatial emptiness into spectral sparsity. It decouples high-frequency details from low-frequency structures through spatial compression, and wavelet-space velocity fields facilitate stable ordinary differential equation (ODE) solvers with large step sizes. Using large-scale cosmological N-body simulations, at 128³ resolution, we achieve up to <strong>50× faster sampling</strong> than diffusion models, combining a 10× reduction in integration steps with lower per-step computational cost from wavelet compression. Our results enable initial conditions to be sampled in seconds, compared to minutes for previous methods.
+    </div>
+  </div>
+</section>
+
+<!-- ── Void Problem ── -->
+<section class="section" id="void">
+  <div class="container">
+    <h2 class="sec-title reveal">The Void Problem</h2>
+    <p class="reveal" style="color:var(--text-dim);margin-bottom:20px;">
+      Analysis of N-body simulations reveals a stark disconnect between volume and mass. Voids occupy <strong style="color:var(--red);">~63.7%</strong> of the total cosmic volume yet contain only <strong style="color:var(--red);">16.2%</strong> of the dark matter mass. In a standard voxel-space model, every one of these empty voxels demands identical compute to the dense, physically interesting halos and filaments. This "uniform computation cost" mismatch is the fundamental driver for adopting wavelet representations.
+    </p>
+    <div class="fig-wrap reveal">
+      <img src="figures/SparsityDualis.png" alt="Sparsity Dualis: voxel grid vs wavelet representation">
+      <div class="fig-caption">
+        <strong>Voxel vs. Wavelet representation of the Cosmic Web.</strong> Left: the Eulerian grid allocates compute uniformly — over 1.3 million of 2.1 million voxels at 128³ describe near-empty void regions. Right: the wavelet representation adapts to structure. Voids collapse to a handful of coarse approximation coefficients; filaments and halos receive dense, fine-grained detail coefficients.
+      </div>
+    </div>
+
+    <div class="contrib-grid reveal">
+      <div class="contrib-card">
+        <div class="contrib-icon">🌌</div>
+        <h4>63.7% Empty by Volume</h4>
+        <p>Voids dominate the cosmic volume but carry only 16.2% of the dark matter mass — pure computational waste in voxel space.</p>
+      </div>
+      <div class="contrib-card">
+        <div class="contrib-icon">🌀</div>
+        <h4>Spectral Sparsity</h4>
+        <p>The 3D Haar DWT converts spatial emptiness into near-zero high-frequency wavelet coefficients, making sparsity explicit.</p>
+      </div>
+      <div class="contrib-card">
+        <div class="contrib-icon">⚡</div>
+        <h4>8× Spatial Compression</h4>
+        <p>One DWT level halves each spatial dimension, yielding an 8-fold compression that directly reduces per-step inference cost by 5×.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Method ── -->
+<section class="section" id="method">
+  <div class="container">
+    <h2 class="sec-title reveal">Method</h2>
+
+    <h3 class="sub-title reveal">Wavelet Flow Matching</h3>
+    <p class="reveal" style="color:var(--text-dim);margin-bottom:20px;">
+      Flow matching learns a velocity field v<sub>θ</sub> that transports samples from a Gaussian prior to the target distribution by solving a deterministic ODE. Cosmo3DFlow operates entirely in wavelet space, providing stable ODE integration with large step sizes.
+    </p>
+
+    <div class="pipeline reveal">
+      <div class="pipe-step">
+        <div class="pipe-num">1</div>
+        <h4>Transform</h4>
+        <p>Apply 3D Haar DWT to both noise and conditioning observation → 8 coefficient tensors at ½ spatial resolution</p>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">2</div>
+        <h4>Interpolate</h4>
+        <p>Form the flow path w̃<sub>t</sub> = t·w̃₁ + (1−t)·w̃₀ in wavelet space</p>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">3</div>
+        <h4>Train</h4>
+        <p>Minimize wavelet-space flow matching loss + power spectrum regularizer</p>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">4</div>
+        <h4>Sample</h4>
+        <p>Integrate v<sub>θ</sub> with 100 Euler steps, then apply IDWT to recover the initial density field</p>
+      </div>
+    </div>
+
+    <h3 class="sub-title reveal">Training Objective</h3>
+    <div class="eq-block reveal">
+ℒ_flow  = E[ ‖ v_θ(w̃_t, t, ỹ) − (w̃₁ − w̃₀) ‖² ]
+
+ℒ_PS    = Σᵢ ( log P_pred(kᵢ) − log P_target(kᵢ) )²
+
+ℒ_total = ℒ_flow  +  0.01 · ℒ_PS</div>
+    <p class="reveal" style="font-size:.83rem;color:var(--text-dim);">
+      The power spectrum regularizer (λ = 0.01) enforces physically consistent density statistics, pushing the model to respect the correct cosmological power distribution across wavenumbers k.
+    </p>
+
+    <h3 class="sub-title reveal">Wavelet-Aware 3D U-Net</h3>
+    <p class="reveal" style="color:var(--text-dim);margin-bottom:20px;">
+      The velocity network takes 16 input channels (8-channel wavelet noise + 8-channel conditioning) and predicts the 8-channel velocity field. Key architectural innovations:
+    </p>
+    <div class="arch-grid reveal">
+      <dl class="arch-item">
+        <dt>Scale-specific conditioning</dt>
+        <dd>Per-level wavelet features injected via 1×1×1 convolutions at each U-Net resolution</dd>
+      </dl>
+      <dl class="arch-item">
+        <dt>Cross-scale skip connections</dt>
+        <dd>Learned 1×1×1 projections bridge encoder features to non-corresponding decoder levels</dd>
+      </dl>
+      <dl class="arch-item">
+        <dt>Residual blocks</dt>
+        <dd>BigGAN-style with Group Normalization, SiLU activations, Gaussian Fourier time embeddings</dd>
+      </dl>
+      <dl class="arch-item">
+        <dt>Fixed 8³ bottleneck</dt>
+        <dd>2, 3, or 4 encoder levels for 32³ / 64³ / 128³ resolutions</dd>
+      </dl>
+    </div>
+
+    <h3 class="sub-title reveal">Training Configuration</h3>
+    <div class="eq-block reveal">Optimizer:     AdamW,  lr = 1e-4
+LR schedule:   ReduceLROnPlateau (patience=5, factor=0.5)
+Grad clipping: max norm 1.0
+EMA decay:     0.999
+Epochs:        100  (best val-loss checkpoint)
+Batch sizes:   16 / 8 / 4  for 32³ / 64³ / 128³
+Hardware:      NVIDIA A100 80 GB</div>
+  </div>
+</section>
+
+<!-- ── Results ── -->
+<section class="section" id="results">
+  <div class="container">
+    <h2 class="sec-title reveal">Results</h2>
+
+    <h3 class="sub-title reveal">Efficiency Comparison @ 128³</h3>
+    <div class="reveal" style="margin:20px 0 28px;">
+      <div class="speed-row">
+        <span class="speed-label">Cosmo3DFlow</span>
+        <div class="speed-bar-wrap">
+          <div class="speed-bar bar-ours" data-width="2.1" style="width:0%">5.2 s</div>
+        </div>
+        <span class="speed-val">5.2 s</span>
+      </div>
+      <div class="speed-row">
+        <span class="speed-label">Diffusion baseline</span>
+        <div class="speed-bar-wrap">
+          <div class="speed-bar bar-diffuse" data-width="100" style="width:0%">243 s</div>
+        </div>
+        <span class="speed-val">243 s</span>
+      </div>
+      <p style="font-size:.78rem;color:var(--text-faint);margin-top:8px;">Bars scaled proportionally to sampling time.</p>
+    </div>
+
+    <div class="table-wrap reveal">
+      <table>
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th>Cosmo3DFlow</th>
+            <th>Diffusion Baseline</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="highlight-row">
+            <td>Sampling time @ 128³</td>
+            <td class="best">5.2 s</td>
+            <td>243 s</td>
+          </tr>
+          <tr>
+            <td>VRMSE @ 128³</td>
+            <td class="best">0.50</td>
+            <td>0.63</td>
+          </tr>
+          <tr>
+            <td>Cross-correlation @ 128³</td>
+            <td class="best">0.88</td>
+            <td>0.82</td>
+          </tr>
+          <tr>
+            <td>Power spectrum R² @ 128³</td>
+            <td class="best">0.99</td>
+            <td>0.70</td>
+          </tr>
+          <tr>
+            <td>Peak memory @ 128³</td>
+            <td class="best">2.1 GB</td>
+            <td>4.0 GB</td>
+          </tr>
+          <tr>
+            <td>ODE steps</td>
+            <td class="best">100</td>
+            <td>1 000</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="sub-title reveal">Full Results — All Datasets × Resolutions</h3>
+    <p class="reveal" style="font-size:.83rem;color:var(--text-dim);margin-bottom:16px;">Format: Ours / Diffusion baseline. Bold = best.</p>
+
+    <h4 style="font-size:.9rem;font-weight:600;margin:20px 0 8px;" class="reveal">Standard Latin Hypercube (2 000 simulations)</h4>
+    <div class="table-wrap reveal">
+      <table>
+        <thead><tr><th>Resolution</th><th>VRMSE ↓</th><th>Corr ↑</th><th>PS R² ↑</th><th>Transfer Fn ↑</th></tr></thead>
+        <tbody>
+          <tr><td>128³</td><td><span class="best">0.50</span> / 0.63</td><td><span class="best">0.88</span> / 0.82</td><td><span class="best">0.99</span> / 0.70</td><td><span class="best">0.99</span> / 0.80</td></tr>
+          <tr><td>64³</td><td><span class="best">0.47</span> / 0.68</td><td><span class="best">0.92</span> / 0.89</td><td><span class="best">0.98</span> / 0.59</td><td><span class="best">0.98</span> / 0.59</td></tr>
+          <tr><td>32³</td><td><span class="best">0.34</span> / 0.82</td><td><span class="best">0.96</span> / 0.85</td><td><span class="best">0.95</span> / 0.48</td><td><span class="best">0.95</span> / 0.48</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4 style="font-size:.9rem;font-weight:600;margin:20px 0 8px;" class="reveal">Big Sobol Sequence (1 000 simulations)</h4>
+    <div class="table-wrap reveal">
+      <table>
+        <thead><tr><th>Resolution</th><th>VRMSE ↓</th><th>Corr ↑</th><th>PS R² ↑</th><th>Transfer Fn ↑</th></tr></thead>
+        <tbody>
+          <tr><td>128³</td><td><span class="best">0.62</span> / 0.64</td><td><span class="best">0.80</span> / 0.79</td><td><span class="best">0.99</span> / 0.84</td><td><span class="best">0.95</span> / 0.88</td></tr>
+          <tr><td>64³</td><td><span class="best">0.53</span> / 0.65</td><td>0.88 / 0.88</td><td><span class="best">0.98</span> / 0.83</td><td><span class="best">0.94</span> / 0.81</td></tr>
+          <tr><td>32³</td><td><span class="best">0.37</span> / 0.79</td><td><span class="best">0.95</span> / 0.85</td><td><span class="best">0.95</span> / 0.48</td><td><span class="best">0.94</span> / 0.71</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4 style="font-size:.9rem;font-weight:600;margin:20px 0 8px;" class="reveal">Non-Gaussian f<sub>NL</sub> LH (1 000 simulations)</h4>
+    <div class="table-wrap reveal">
+      <table>
+        <thead><tr><th>Resolution</th><th>VRMSE ↓</th><th>Corr ↑</th><th>PS R² ↑</th><th>Transfer Fn ↑</th></tr></thead>
+        <tbody>
+          <tr><td>128³</td><td><span class="best">0.56</span> / 0.59</td><td><span class="best">0.86</span> / 0.83</td><td>1.00 / 1.00</td><td>0.98 / 0.98</td></tr>
+          <tr><td>64³</td><td><span class="best">0.47</span> / 0.57</td><td><span class="best">0.93</span> / 0.89</td><td>1.00 / 1.00</td><td>0.99 / 0.99</td></tr>
+          <tr><td>32³</td><td><span class="best">0.31</span> / 0.67</td><td><span class="best">0.97</span> / 0.87</td><td><span class="best">1.00</span> / 0.98</td><td><span class="best">0.99</span> / 0.98</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ── Ablation ── -->
+<section class="section" id="ablation">
+  <div class="container">
+    <h2 class="sec-title reveal">Ablation Study</h2>
+    <p class="reveal" style="color:var(--text-dim);margin-bottom:20px;">
+      Component ablation at 32³ resolution (Standard LH). Each row adds one component; the full model achieves the best VRMSE and R².
+    </p>
+    <div class="table-wrap reveal">
+      <table>
+        <thead>
+          <tr>
+            <th>Wavelet</th>
+            <th>Scale Cond.</th>
+            <th>X-Scale Skips</th>
+            <th>P(k) Weight</th>
+            <th>VRMSE ↓</th>
+            <th>R² ↑</th>
+            <th>Transfer Fn ↑</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>✗</td><td>✗</td><td>✗</td><td>✗</td><td>0.26</td><td>0.95</td><td>0.94</td></tr>
+          <tr><td>✓</td><td>✗</td><td>✗</td><td>✗</td><td>0.34</td><td>0.95</td><td>0.95</td></tr>
+          <tr><td>✓</td><td>✓</td><td>✓</td><td>✗</td><td>0.27</td><td>0.96</td><td class="best">0.96</td></tr>
+          <tr class="highlight-row"><td>✓</td><td>✓</td><td>✓</td><td>0.01</td><td class="best">0.25</td><td class="best">0.97</td><td class="best">0.96</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="reveal" style="font-size:.82rem;color:var(--text-dim);margin-top:12px;">
+      Scale conditioning and cross-scale skips bridge the gap between spatial and wavelet domains. The power spectrum weight pushes the model to respect physical density statistics, yielding the best overall VRMSE.
+    </p>
+  </div>
+</section>
+
+<!-- ── Dataset ── -->
+<section class="section" id="dataset">
+  <div class="container">
+    <h2 class="sec-title reveal">Dataset</h2>
+    <p class="reveal" style="color:var(--text-dim);margin-bottom:20px;">
+      Experiments use three suites from the <a href="https://quijote-simulations.readthedocs.io/en/latest/LH.html" target="_blank" rel="noopener" style="color:var(--accent);">Quijote N-body simulations</a> — periodic boxes of (1 000 h⁻¹ Mpc)³ with 512³ particles, snapshots at z = 127 (initial conditions) and z = 0 (present-day). Density fields are constructed at 32³, 64³, and 128³ resolutions using the Pylians library.
+    </p>
+    <div class="dataset-grid reveal">
+      <div class="dataset-card">
+        <h4>Standard Latin Hypercube</h4>
+        <div class="stat"><strong>2 000</strong> simulations</div>
+        <div class="stat">5 parameters: Ω<sub>m</sub>, Ω<sub>b</sub>, h, n<sub>s</sub>, σ<sub>8</sub></div>
+        <div class="stat">Split: 1 800 / 100 / 100</div>
+      </div>
+      <div class="dataset-card">
+        <h4>Big Sobol Sequence (BSQ)</h4>
+        <div class="stat"><strong>1 000</strong> simulations</div>
+        <div class="stat">5 parameters: Ω<sub>m</sub>, Ω<sub>b</sub>, h, n<sub>s</sub>, σ<sub>8</sub></div>
+        <div class="stat">Split: 8 : 1 : 1</div>
+      </div>
+      <div class="dataset-card">
+        <h4>Non-Gaussian f<sub>NL</sub> LH</h4>
+        <div class="stat"><strong>1 000</strong> simulations</div>
+        <div class="stat">f<sub>NL</sub><sup>local</sup> ∈ [−300, 300]</div>
+        <div class="stat">Split: 8 : 1 : 1</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Citation ── -->
+<section class="section" id="citation">
+  <div class="container">
+    <h2 class="sec-title reveal">Citation</h2>
+    <div class="bibtex-wrap reveal">
+      <div class="bibtex-code" id="bibtex">@article{islam2026cosmo3dflow,
+  title   = {Cosmo3DFlow: Wavelet Flow Matching for Spatial-to-Spectral
+             Compression in Reconstructing the Early Universe},
+  author  = {Islam, Md Khairul and Xia, Zeyu and Goudjil, Ryan and
+             Wang, Jialu and Farahi, Arya and Fox, Judy},
+  journal = {arXiv preprint arXiv:2602.10172},
+  year    = {2026}
+}</div>
+      <button class="copy-btn" onclick="copyBib()">Copy</button>
+    </div>
+  </div>
+</section>
+
+<!-- ── Acknowledgments ── -->
+<section class="section" id="ack">
+  <div class="container">
+    <h2 class="sec-title reveal">Acknowledgments</h2>
+    <div class="ack-box reveal">
+      This work is partly supported by the <strong>NSF-Simons AI Institute for Cosmic Origins</strong> (CosmicAI, Grant 2421782). We thank the Quijote simulation team for making their N-body suite publicly available.
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <p>
+    Cosmo3DFlow · KDD '26 ·
+    <a href="https://arxiv.org/abs/2602.10172" target="_blank" rel="noopener">arXiv:2602.10172</a> ·
+    University of Virginia &amp; University of Texas at Austin
+  </p>
+</footer>
+
+<script>
+/* ── Starfield ── */
+(function(){
+  const c = document.getElementById('stars');
+  const ctx = c.getContext('2d');
+  let stars = [];
+  function resize(){
+    c.width = window.innerWidth;
+    c.height = window.innerHeight;
+  }
+  function init(){
+    resize();
+    stars = Array.from({length:200},()=>({
+      x: Math.random()*c.width,
+      y: Math.random()*c.height,
+      r: Math.random()*1.2+.2,
+      a: Math.random(),
+      da: (Math.random()-.5)*.005
+    }));
+  }
+  function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    stars.forEach(s=>{
+      s.a = Math.max(.05,Math.min(1,s.a+s.da));
+      if(s.a<=.05||s.a>=1) s.da*=-1;
+      ctx.beginPath();
+      ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(180,200,255,${s.a})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize',resize);
+  init(); draw();
+})();
+
+/* ── Scroll reveal ── */
+(function(){
+  const io = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting) e.target.classList.add('visible');
+    });
+  },{threshold:.1});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+})();
+
+/* ── Speed bars ── */
+(function(){
+  const io = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(!e.isIntersecting) return;
+      e.target.querySelectorAll('.speed-bar').forEach(bar=>{
+        bar.style.width = bar.dataset.width+'%';
+      });
+      io.unobserve(e.target);
+    });
+  },{threshold:.3});
+  const wrap = document.querySelector('.speed-row')?.closest('.reveal');
+  if(wrap) io.observe(wrap.parentElement);
+})();
+
+/* ── BibTeX copy ── */
+function copyBib(){
+  const text = document.getElementById('bibtex').textContent;
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn = document.querySelector('.copy-btn');
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    btn.style.background = 'var(--accent3)';
+    btn.style.color = '#fff';
+    setTimeout(()=>{ btn.textContent = orig; btn.style.background=''; btn.style.color=''; }, 2000);
+  });
+}
+</script>
+</body>
+</html>
