@@ -1,0 +1,11 @@
+lightning
+matplotlib
+moviepy
+numpy
+pandas
+pylians
+PyWavelets
+torch
+tqdm
+torchdyn
+torch-ema
