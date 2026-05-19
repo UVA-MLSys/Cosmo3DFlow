@@ -22,18 +22,26 @@
 
 ## Contents
 
-- [Overview](#overview)
-- [The Void Problem](#the-void-problem)
-- [Method](#method)
-- [Dataset](#dataset)
-- [Experiments](#experiments)
-  - [Qualitative Reconstruction](#qualitative-reconstruction)
-  - [Computational Efficiency](#computational-efficiency)
-  - [Convergence](#convergence)
-  - [Physics Validation](#physics-validation)
-  - [Quantitative Results](#quantitative-results)
-- [Installation](#installation)
-- [Acknowledgments](#acknowledgments)
+- [Cosmo3DFlow: Wavelet Flow Matching for Spatial-to-Spectral Compression in Reconstructing the Early Universe](#cosmo3dflow-wavelet-flow-matching-for-spatial-to-spectral-compression-in-reconstructing-the-early-universe)
+  - [Contents](#contents)
+  - [Overview](#overview)
+  - [The Void Problem](#the-void-problem)
+  - [Method](#method)
+    - [Wavelet Flow Matching](#wavelet-flow-matching)
+    - [Wavelet-Aware 3D U-Net](#wavelet-aware-3d-u-net)
+    - [Training](#training)
+  - [Dataset](#dataset)
+  - [Experiments](#experiments)
+    - [Qualitative Reconstruction](#qualitative-reconstruction)
+    - [Computational Efficiency](#computational-efficiency)
+    - [Convergence](#convergence)
+    - [Physics Validation](#physics-validation)
+    - [Quantitative Results](#quantitative-results)
+      - [Table 2 — Standard Latin Hypercube (2,000 simulations)](#table-2--standard-latin-hypercube-2000-simulations)
+      - [Table 3 — Big Sobol Sequence (1,000 simulations)](#table-3--big-sobol-sequence-1000-simulations)
+      - [Table 4 — Non-Gaussian fNL LH (1,000 simulations)](#table-4--non-gaussian-fnl-lh-1000-simulations)
+  - [Installation](#installation)
+  - [Acknowledgments](#acknowledgments)
 
 ---
 
@@ -192,5 +200,15 @@ pip install -r requirements.txt
 
 ## Acknowledgments
 
-Supported by the **NSF-Simons AI Institute for Cosmic Origins** (CosmicAI, Grant 2421782).  
+We acknowledge support from the **National Science Foundation** under Cooperative Agreement 2421782 and the **Simons Foundation** award MPS-AI-00010515.  
 *University of Virginia · University of Texas at Austin*
+
+<p align="center">
+  <img src="docs/logos/uva_logo_primary.png" alt="University of Virginia" height="48"/>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="docs/logos/NSF-Symbol.png" alt="National Science Foundation" height="72"/>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+    <img src="docs/logos/Cosmic-AI-Formal.jpg" alt="Cosmic-AI" height="72"/>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="docs/logos/Simons-Foundation-Logo_blue.png" alt="Simons Foundation" height="48"/>
+</p>

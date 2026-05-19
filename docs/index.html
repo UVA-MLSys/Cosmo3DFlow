@@ -10,19 +10,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #05070f;
-  --bg2: #080c18;
-  --surface: #0d1424;
-  --surface2: #121b30;
-  --border: #1e2d4a;
-  --accent: #4f8ef7;
-  --accent2: #a78bfa;
-  --accent3: #34d399;
-  --text: #e2e8f0;
-  --text-dim: #94a3b8;
-  --text-faint: #4a5568;
-  --gold: #fbbf24;
-  --red: #f87171;
+  --bg: #ffffff;
+  --bg2: #f8fafc;
+  --surface: #f1f5f9;
+  --surface2: #e2e8f0;
+  --border: #cbd5e1;
+  --accent: #2563eb;
+  --accent2: #7c3aed;
+  --accent3: #059669;
+  --text: #0f172a;
+  --text-dim: #475569;
+  --text-faint: #94a3b8;
+  --gold: #d97706;
+  --red: #dc2626;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -37,11 +37,10 @@ body {
   overflow-x: hidden;
 }
 
-/* ── Starfield canvas ── */
-#stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+/* ── Starfield canvas (disabled in light theme) ── */
+#stars { display: none; }
 
 /* ── Layout ── */
-main { position: relative; z-index: 1; }
 .container { max-width: 900px; margin: 0 auto; padding: 0 24px; }
 .section { padding: 60px 0; }
 .section + .section { border-top: 1px solid var(--border); }
@@ -49,11 +48,11 @@ main { position: relative; z-index: 1; }
 /* ── Nav ── */
 nav {
   position: sticky; top: 0; z-index: 100;
-  background: rgba(5,7,15,.95);
+  background: rgba(255,255,255,.97);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border);
   padding: 18px 32px;
-  box-shadow: 0 2px 24px rgba(0,0,0,.5);
+  box-shadow: 0 2px 16px rgba(0,0,0,.06);
 }
 .nav-inner {
   max-width: 900px; margin: 0 auto;
@@ -94,7 +93,7 @@ nav {
   border-radius: 10px;
   padding: 6px 0;
   min-width: 190px;
-  box-shadow: 0 12px 40px rgba(0,0,0,.6);
+  box-shadow: 0 8px 32px rgba(0,0,0,.10);
   z-index: 200;
 }
 .nav-dropdown:hover .nav-dropdown-menu { display: block; }
@@ -112,7 +111,7 @@ nav {
   font-size: .95rem; color: var(--text-dim); text-decoration: none;
   transition: all .15s;
 }
-.nav-dropdown-menu a:hover { color: var(--accent); background: rgba(79,142,247,.08); padding-left: 26px; }
+.nav-dropdown-menu a:hover { color: var(--accent); background: rgba(37,99,235,.06); padding-left: 26px; }
 
 /* ── Table label ── */
 .table-label {
@@ -125,6 +124,8 @@ nav {
 .hero {
   padding: 100px 0 80px;
   text-align: center;
+  background: linear-gradient(160deg, #eff6ff 0%, #faf5ff 60%, #f0fdf4 100%);
+  border-bottom: 1px solid var(--border);
 }
 .venue-pill {
   display: inline-flex; align-items: center; gap: 8px;
@@ -145,7 +146,7 @@ h1.title {
   font-size: clamp(1.8rem, 4vw, 2.8rem);
   font-weight: 700;
   line-height: 1.25;
-  background: linear-gradient(135deg, #e2e8f0 0%, #a5c8ff 40%, #c4b5fd 80%);
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 45%, #7c3aed 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -177,10 +178,10 @@ h1.title {
   border: 1px solid var(--border);
   transition: all .2s;
 }
-.badge:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,.4); }
-.badge-arxiv { background: rgba(179,27,27,.15); border-color: rgba(179,27,27,.4); color: #fca5a5; }
-.badge-kdd   { background: rgba(79,142,247,.12); border-color: rgba(79,142,247,.35); color: var(--accent); }
-.badge-github { background: rgba(30,45,74,.5); border-color: var(--border); color: var(--text-dim); }
+.badge:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.12); }
+.badge-arxiv { background: rgba(220,38,38,.08); border-color: rgba(220,38,38,.3); color: #b91c1c; }
+.badge-kdd   { background: rgba(37,99,235,.08); border-color: rgba(37,99,235,.3); color: var(--accent); }
+.badge-github { background: #f8fafc; border-color: var(--border); color: var(--text-dim); }
 
 /* ── Metric cards ── */
 .metrics {
@@ -349,9 +350,9 @@ td {
   border: 1px solid var(--border);
   color: var(--text);
 }
-tr:nth-child(even) td { background: rgba(13,20,36,.5); }
+tr:nth-child(even) td { background: rgba(241,245,249,.8); }
 .best { color: var(--accent3); font-weight: 700; }
-.highlight-row td { background: rgba(79,142,247,.08) !important; }
+.highlight-row td { background: rgba(37,99,235,.06) !important; }
 
 /* ── Speed bar ── */
 .speed-row { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
@@ -426,6 +427,19 @@ tr:nth-child(even) td { background: rgba(13,20,36,.5); }
   transition: all .2s;
 }
 .copy-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* ── Institution logos ── */
+.logo-row {
+  display: flex; align-items: center; justify-content: center;
+  flex-wrap: wrap; gap: 36px;
+  margin-top: 24px;
+}
+.logo-row img {
+  height: 40px; width: auto;
+  opacity: .8; transition: opacity .2s;
+  filter: grayscale(10%);
+}
+.logo-row img:hover { opacity: 1; filter: none; }
 
 /* ── Acknowledgments ── */
 .ack-box {
@@ -517,6 +531,12 @@ footer a:hover { color: var(--accent); }
   <div class="affils">
     <sup>1</sup> University of Virginia &nbsp;·&nbsp;
     <sup>2</sup> University of Texas at Austin
+  </div>
+
+  <div class="logo-row" style="margin-bottom:32px;">
+    <img src="logos/uva_logo_primary.png" alt="University of Virginia" style="height:36px;">
+    <img src="logos/NSF-Symbol.png" alt="National Science Foundation" style="height:44px;">
+    <img src="logos/Simons-Foundation-Logo_blue.png" alt="Simons Foundation" style="height:32px;">
   </div>
 
   <div class="badge-row">
@@ -811,7 +831,21 @@ footer a:hover { color: var(--accent); }
   <div class="container">
     <h2 class="sec-title reveal">Acknowledgments</h2>
     <div class="ack-box reveal">
-      Supported by the <strong>NSF-Simons AI Institute for Cosmic Origins</strong> (CosmicAI, Grant 2421782). We thank the Quijote team for making their N-body suite publicly available.
+      We acknowledge support from the <strong>National Science Foundation</strong> under Cooperative Agreement 2421782 and the <strong>Simons Foundation</strong> award MPS-AI-00010515. We thank the Quijote team for making their N-body suite publicly available.
+    </div>
+    <div class="logo-row reveal">
+      <a href="https://www.virginia.edu" target="_blank" rel="noopener">
+        <img src="logos/uva_logo_primary.png" alt="University of Virginia" style="height:48px;">
+      </a>
+      <a href="https://www.nsf.gov" target="_blank" rel="noopener">
+        <img src="logos/NSF-Symbol.png" alt="National Science Foundation" style="height:80px;">
+      </a>
+      <a href="https://www.nsf.gov" target="_blank" rel="noopener">
+        <img src="logos/Cosmic-AI-Formal.jpg" alt="Cosmic-AI" style="height:96px;">
+      </a>
+      <a href="https://www.simonsfoundation.org" target="_blank" rel="noopener">
+        <img src="logos/Simons-Foundation-Logo_blue.png" alt="Simons Foundation" style="height:40px;">
+      </a>
     </div>
   </div>
 </section>
