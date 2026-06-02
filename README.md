@@ -200,8 +200,8 @@ pip install -r requirements.txt
 
 ## Acknowledgments
 
-We acknowledge support from the **National Science Foundation** under Cooperative Agreement 2421782 and the **Simons Foundation** award MPS-AI-00010515.  
-*University of Virginia · University of Texas at Austin*
+We acknowledge support from the **National Science Foundation** under Cooperative Agreement 2421782 and the **Simons Foundation** award MPS-AI-00010515 and Seed Grant AWD-006703 (UVA00002858-AS-ASTR-NSF Simons CosmicAI). We thank the Quijote team for making their 𝑁 -body suite publicly available. We are grateful for the UVA Research Computing resources and support. 
+*University of Virginia · University of Texas at Austin*   
 
 <p align="center">
   <img src="docs/logos/uva_logo_primary.png" alt="University of Virginia" height="48"/>
