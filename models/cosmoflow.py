@@ -36,107 +36,14 @@ import torch
 import torch.nn as nn
 import math
 
-class KWeightedPowerSpectrumLoss3D(nn.Module):
-    """
-    Computes a frequency-weighted Power Spectrum loss between two 3D volumes.
-    """
-    def __init__(self, grid_size: int, box_size: float = 1000.0, decay_rate: float = 2.0):
-        super().__init__()
-        self.grid_size = grid_size
-        self.box_size = box_size
-        
-        # 1. Calculate physical grid spacing (dx)
-        dx = box_size / grid_size
-        
-        # 2. Create a 3D grid of physical frequencies (k = 2 * pi * f)
-        # fftfreq(d=dx) gives cycles per Mpc/h. Multiply by 2*pi for angular wavenumber k
-        k_1d = torch.fft.fftfreq(grid_size, d=dx) * 2 * math.pi
-        kx, ky, kz = torch.meshgrid(k_1d, k_1d, k_1d, indexing='ij')
-        
-        # Calculate the magnitude of the wavevector |k| 
-        k_mag = torch.sqrt(kx**2 + ky**2 + kz**2)
-        
-        # 3. Physical 1D Nyquist limit: k_nyq = pi / dx
-        k_nyquist_1d = math.pi / dx
-        
-        # Normalize by the exact physical 1D Nyquist limit
-        k_mag_norm = k_mag / k_nyquist_1d
-        
-        # Exponential decay
-        weight_mask = torch.exp(-decay_rate * k_mag_norm)
-        
-        # HARD CUTOFF: Zero out the anisotropic grid artifacts (k > k_nyquist_1d)
-        isotropic_mask = (k_mag <= k_nyquist_1d).float()
-        weight_mask = weight_mask * isotropic_mask
-        
-        weight_mask[0, 0, 0] = 0.0 # Ignore DC component (k=0)
-        weight_mask = weight_mask.view(1, 1, grid_size, grid_size, grid_size)
-        
-        self.register_buffer('weight_mask', weight_mask, persistent=False)
-
-    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        """
-        pred, target: [B, C, D, H, W]
-        """
-        # cuFFT frequently crashes with fp16/bf16 inputs during AMP training
-        pred = pred.to(torch.float32)
-        target = target.to(torch.float32)
-        # Fast Fourier Transform
-        fft_pred = torch.fft.fftn(pred, dim=(-3, -2, -1), norm='ortho')
-        fft_target = torch.fft.fftn(target, dim=(-3, -2, -1), norm='ortho')
-        
-        # Power Spectrum
-        ps_pred = torch.abs(fft_pred) ** 2
-        ps_target = torch.abs(fft_target) ** 2
-        
-        log_ps_pred = torch.log(ps_pred + 1e-8)
-        log_ps_target = torch.log(ps_target + 1e-8)
-        
-        # self.weight_mask will automatically be on the same device as pred/target
-        # assuming you initialized this module inside your LightningModule or called .to(device)
-        weighted_squared_error = self.weight_mask * (log_ps_pred - log_ps_target) ** 2
-        
-        return torch.mean(weighted_squared_error)
-
-class WaveletAdaptiveNorm(nn.Module):
-    """Normalization that treats different wavelet scales separately"""
-    def __init__(self, num_channels, num_wavelet_bands=8):
-        super().__init__()
-        self.num_bands = num_wavelet_bands
-        
-        # Ensure num_channels is divisible by num_bands
-        assert num_channels % num_wavelet_bands == 0, \
-            f"num_channels ({num_channels}) must be divisible by num_wavelet_bands ({num_wavelet_bands})"
-        
-        self.channels_per_band = num_channels // num_wavelet_bands
-        
-        # Separate normalization per wavelet band
-        self.norms = nn.ModuleList([
-            nn.GroupNorm(
-                num_groups=min(self.channels_per_band // 4, 8),
-                num_channels=self.channels_per_band,
-                eps=1e-6
-            )
-            for _ in range(num_wavelet_bands)
-        ])
-    
-    def forward(self, x):
-        # Split by wavelet bands
-        bands = torch.chunk(x, self.num_bands, dim=1)
-        
-        # Normalize each band separately
-        normalized = [norm(band) for norm, band in zip(self.norms, bands)]
-        
-        return torch.cat(normalized, dim=1)
-
 # %%
 class UNet3DModel(nn.Module):
 
-  def __init__(self, config, 
-               use_scale_conditioning=False,
-               use_cross_scale_skips=False,
-               use_wavelet_adaptive_norm=False,
-               use_checkpoint=False):
+  def __init__(
+        self, config, 
+        use_scale_conditioning=False,
+        use_cross_scale_skips=False
+    ):
     super().__init__()
     self.config = config
     self.act = act = get_act(config)
@@ -144,15 +51,13 @@ class UNet3DModel(nn.Module):
     # Novel feature flags
     self.use_scale_conditioning = use_scale_conditioning
     self.use_cross_scale_skips = use_cross_scale_skips
-    self.use_wavelet_adaptive_norm = use_wavelet_adaptive_norm
-    self.use_checkpoint = use_checkpoint
 
     self.nf = nf = config.model.nf
     ch_mult = config.model.ch_mult
     self.num_res_blocks = num_res_blocks = config.model.num_res_blocks
     dropout = config.model.dropout
     self.num_resolutions = num_resolutions = len(ch_mult)
-    self.all_resolutions = [config.model.image_size // (2 ** i) for i in range(num_resolutions)]
+    self.all_resolutions = [config.data.image_size // (2 ** i) for i in range(num_resolutions)]
 
     self.conditional = conditional = config.model.conditional  # noise-conditional
     fir = config.model.fir
@@ -189,8 +94,8 @@ class UNet3DModel(nn.Module):
                                     temb_dim=nf * 4)
 
     # Downsampling block
-    input_channels = config.model.num_input_channels
-    output_channels = config.model.num_output_channels
+    input_channels = config.data.num_input_channels
+    output_channels = config.data.num_output_channels
 
     # NEW: Scale-specific conditioning projections
     if self.use_scale_conditioning:
@@ -239,11 +144,7 @@ class UNet3DModel(nn.Module):
 
     assert not hs_c
 
-    # NEW: Wavelet-adaptive normalization vs standard GroupNorm
-    if self.use_wavelet_adaptive_norm:
-      modules.append(WaveletAdaptiveNorm(in_ch, num_wavelet_bands=8))
-    else:
-      modules.append(nn.GroupNorm(num_groups=min(in_ch // 4, 32),
+    modules.append(nn.GroupNorm(num_groups=min(in_ch // 4, 32),
                                   num_channels=in_ch, eps=1e-6))
     
     modules.append(conv3x3(in_ch, output_channels, init_scale=init_scale))
@@ -261,11 +162,6 @@ class UNet3DModel(nn.Module):
     if t.ndim == 0:
       t = t.unsqueeze(0).expand(x.shape[0])
     
-    def run_module(module, *args):
-        if self.use_checkpoint and self.training:
-            return torch.utils.checkpoint.checkpoint(module, *args, use_reentrant=False)
-        return module(*args)
-
     modules = self.all_modules
     m_idx = 0
     if self.embedding_type == 'fourier':
@@ -301,7 +197,7 @@ class UNet3DModel(nn.Module):
       
       # Residual blocks for this resolution
       for i_block in range(self.num_res_blocks):
-        h = run_module(modules[m_idx], hs[-1], temb)
+        h = modules[m_idx](hs[-1], temb)
         
         # NEW: Inject scale-specific conditioning
         if self.use_scale_conditioning and z_original is not None:
@@ -315,25 +211,23 @@ class UNet3DModel(nn.Module):
         m_idx += 1
         hs.append(h)
 
-      if i_level != self.num_resolutions - 1:
-        h = run_module(modules[m_idx], hs[-1], temb)
-        m_idx += 1
-        hs.append(h)
-      
-      #TODO: this part is wrong and needs to be fixed. But that needs retraining all 
-      # current checkpoints, so will do later.
       # NEW: Store features for cross-scale skips
       if self.use_cross_scale_skips:
         scale_features[i_level] = hs[-1].clone()
 
+      if i_level != self.num_resolutions - 1:
+        h = modules[m_idx](hs[-1], temb)
+        m_idx += 1
+        hs.append(h)
+      
     h = hs[-1]
-    h = run_module(modules[m_idx], h, temb)
+    h = modules[m_idx](h, temb)
     m_idx += 1
 
     # Upsampling block
     for i_level in reversed(range(self.num_resolutions)):
       for i_block in range(self.num_res_blocks + 1):
-        h = run_module(modules[m_idx], torch.cat([h, hs.pop()], dim=1), temb)
+        h = modules[m_idx](torch.cat([h, hs.pop()], dim=1), temb)
         m_idx += 1
 
       # NEW: Add cross-scale residual connection
@@ -344,7 +238,7 @@ class UNet3DModel(nn.Module):
           h = h + cross_scale
 
       if i_level != 0:
-        h = run_module(modules[m_idx], h, temb)
+        h = modules[m_idx](h, temb)
         m_idx += 1
 
     assert not hs
@@ -360,33 +254,6 @@ class UNet3DModel(nn.Module):
 
 # %% [markdown]
 # ## FlowMatching
-
-# %%
-class AdaptiveWaveletMixer(nn.Module):
-    def __init__(self, num_bands=8, hidden_dim=64):
-        super().__init__()
-        self.num_bands = num_bands
-        
-        # Learn scale-dependent flow speeds as function of time
-        self.time_encoder = nn.Sequential(
-            nn.Linear(1, hidden_dim),
-            nn.SiLU(),
-            nn.Linear(hidden_dim, num_bands),
-            nn.Softplus()  # Ensure positive speeds
-        )
-    
-    def forward(self, x_wavelet, t):
-        """
-        x_wavelet: (B, 8, H, W, D) - wavelet coefficients
-        t: (B,) - time
-        Returns: (B, 8, H, W, D) with time-modulated scales
-        """
-        # Get scale-dependent speeds
-        speeds = self.time_encoder(t.view(-1, 1))  # (B, 8)
-        speeds = speeds.view(-1, 8, 1, 1, 1)
-        
-        # Modulate each scale by its speed
-        return x_wavelet * speeds
 
 # %%
 class ConditionedVelocityModel(nn.Module):
@@ -438,10 +305,6 @@ class FlowMatching(nn.Module):
         
         self.use_wavelet = use_wavelet
         self.power_spec_weight = power_spec_weight
-
-        # self.ps_loss_fn = KWeightedPowerSpectrumLoss3D(
-        #     grid_size=grid_size, decay_rate=2.0
-        # )
 
 
     def get_mu_t(self, x0: torch.Tensor, x1: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
@@ -657,7 +520,6 @@ class CosmoFlow3D(LightningModule):
         power_spec_weight: float = 0.0,
         use_scale_conditioning=False,
         use_cross_scale_skips=False,
-        use_wavelet_adaptive_norm=False,
         use_checkpoint=False,
         compile_model=False,
         wavelet_type: str = 'haar'
@@ -670,7 +532,6 @@ class CosmoFlow3D(LightningModule):
             config,
             use_scale_conditioning=use_scale_conditioning,
             use_cross_scale_skips=use_cross_scale_skips,
-            use_wavelet_adaptive_norm=use_wavelet_adaptive_norm,
             use_checkpoint=use_checkpoint
         )
 
