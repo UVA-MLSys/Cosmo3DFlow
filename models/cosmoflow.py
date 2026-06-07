@@ -3,7 +3,7 @@ import torch
 import torch.utils.checkpoint
 import torch.nn as nn
 from torch_ema import ExponentialMovingAverage
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, Union
 
 import torch
 from torch import nn
@@ -31,12 +31,6 @@ get_act = layers.get_act
 default_initializer = layers.default_init
 
 from einops import rearrange
-def calculate_vrmse(x, y):
-    x = rearrange(x, "B C ... -> B C (...)")
-    y = rearrange(y, "B C ... -> B C (...)")
-    l = (x - y).square().mean(dim=2) / (x.var(dim=2) + 1e-2)
-    l = torch.sqrt(l).mean()
-    return l
 
 import torch
 import torch.nn as nn
@@ -525,7 +519,6 @@ class FlowMatching(nn.Module):
         if self.power_spec_weight > 0:
             # Log-space MSE
             ps_loss = compute_power_spectrum_loss(vt, ut)
-            # ps_loss = calculate_vrmse(vt, ut)
             total_loss = loss + self.power_spec_weight * ps_loss
             return {
                 'loss': total_loss,
@@ -583,7 +576,7 @@ class FlowMatching(nn.Module):
         x1: torch.Tensor,
         h: torch.Tensor | None = None,
         t: torch.Tensor | None = None,
-    ) -> torch.Tensor:
+    ) -> Union[torch.Tensor, Dict[str, torch.Tensor]]:
         '''Flow matching loss'''
         if t is None:
             t = torch.rand(x0.shape[0], device=x0.device).type_as(x0)
