@@ -8,13 +8,21 @@
 > **KDD '26** · ACM SIGKDD · August 9–13, 2026 · Jeju, Republic of Korea
 
 ```bibtex
-@article{islam2026cosmo3dflow,
-  title   = {Cosmo3DFlow: Wavelet Flow Matching for Spatial-to-Spectral
-             Compression in Reconstructing the Early Universe},
-  author  = {Islam, Md Khairul and Xia, Zeyu and Goudjil, Ryan and
-             Wang, Jialu and Farahi, Arya and Fox, Judy},
-  journal = {arXiv preprint arXiv:2602.10172},
-  year    = {2026}
+@inproceedings{10.1145/3770855.3818994,
+author = {Islam, Md. Khairul and Xia, Zeyu and Goudjil, Ryan and Wang, Jialu and Farahi, Arya and Fox, Judy},
+title = {Cosmo3DFlow: Wavelet Flow Matching for Spatial-to-Spectral Compression in Reconstructing the Early Universe},
+year = {2026},
+isbn = {9798400722592},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3770855.3818994},
+doi = {10.1145/3770855.3818994},
+booktitle = {Proceedings of the 32nd ACM SIGKDD Conference on Knowledge Discovery and Data Mining V.2},
+pages = {11153–11164},
+numpages = {12},
+keywords = {generative models, wavelet representation, spatial sparsity, spectral sparsity, flow matching, astronomy},
+location = {Republic of Korea},
+series = {KDD '26}
 }
 ```
 
